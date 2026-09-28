@@ -1,11 +1,14 @@
 import Database from "better-sqlite3";
 const db = new Database('app.db')
 
-const query = `
-  CREATE TABLE test (
-    id INTEGER PRIMARY KEY,
-    name STRING NOT NULL
+const create_items = `
+  CREATE TABLE items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    amount INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRNET_TIMESTAMP
   )
 `;
 
-db.exec(query);
+db.exec(create_items);
