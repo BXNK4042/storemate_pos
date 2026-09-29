@@ -6,13 +6,22 @@ import {
   SidebarGroup,
   SidebarHeader,
 } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
+import Image from "next/image"
+import storemateLogo from "../../public/storemate_logo.jpg"
 
 export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Link href="/">Storemate</Link>
+        <div>
+          <Image
+            src={ storemateLogo }
+            alt="storemate_logo"
+            width={500}
+            height={500}
+          />
+          <Link href="/">Storemate</Link>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
