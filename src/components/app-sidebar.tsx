@@ -1,44 +1,71 @@
 import Link from "next/link"
+import Image from "next/image"
+import storemateLogo from "../../public/storemate_logo.jpg"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import Image from "next/image"
-import storemateLogo from "../../public/storemate_logo.jpg"
 import { Button } from "@/components/ui/button"
-import { LogOut, Box, BanknoteArrowUp } from 'lucide-react'
+import { LogOut, Box, BanknoteArrowUp, LayoutDashboard } from "lucide-react"
 
 export function AppSidebar() {
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <Link href="/" className="text-xl">
-          <div className="flex flex-row items-center gap-2 p-4">
-            <Image
-              src={ storemateLogo }
-              alt="storemate_logo"
-              width={64}
-              height={64}
-              className="rounded-full border"
-            />
-            <h1>Storemate</h1>
+    <Sidebar className="border-r">
+      <SidebarHeader className="border-b px-4 py-3">
+        <Link href="/" className="flex items-center gap-3">
+          <Image
+            src={storemateLogo}
+            alt="StoreMate Logo"
+            width={36}
+            height={36}
+            className="border object-cover rounded-full"
+          />
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold tracking-tight">StoreMate</span>
+            <span className="text-xs text-muted-foreground">POS System</span>
           </div>
         </Link>
-
       </SidebarHeader>
+
       <SidebarContent>
-        <SidebarGroup className="gap-4">
-          <h1 className="text-gray-800 ml-5 text-md">รายการ</h1>
-          <Link href="/items" className="text-gray-400 ml-5 flex gap-3"><Box/>คลังสินค้า</Link>
-          <Link href="/cashier" className="text-gray-400 ml-5 flex gap-3"><BanknoteArrowUp/>แคชเชียร์</Link>
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground">
+            Menu
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton render={<Link href="/items" />}>
+                <Box className="h-4 w-4" />
+                <span>คลังสินค้า (Inventory)</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton render={<Link href="/cashier" />}>
+                <BanknoteArrowUp className="h-4 w-4" />
+                <span>แคชเชียร์ (Cashier)</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <Button variant="outline">
-          <Link href="/" className="text-gray-600 flex gap-2"><LogOut/>ออกจากระบบ</Link>
+
+      <SidebarFooter className="border-t p-3">
+        <Button
+          variant="outline"
+          nativeButton={false}
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+          render={<Link href="/" />}
+        >
+          <LogOut className="h-4 w-4" />
+          <span>ออกจากระบบ</span>
         </Button>
       </SidebarFooter>
     </Sidebar>

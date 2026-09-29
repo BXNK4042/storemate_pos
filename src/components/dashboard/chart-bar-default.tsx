@@ -34,8 +34,7 @@ const chartConfig = {
 
 export default function ChartBarDefault() {
   return (
-    <div className="my-5">
-      <Card>
+    <Card className="w-full">
         <CardHeader>
           <CardTitle>ยอดขายรายวัน</CardTitle>
         </CardHeader>
@@ -54,7 +53,7 @@ export default function ChartBarDefault() {
                 cursor={false}
                 content={<ChartTooltipContent hideLabel />}
               />
-              <Bar dataKey="sale" fill="var(--color-sale)" radius={8} />
+              <Bar dataKey="sale" fill="var(--color-sale)" radius={6} />
             </BarChart>
           </ChartContainer>
         </CardContent>
@@ -64,6 +63,5 @@ export default function ChartBarDefault() {
           </div>
         </CardFooter>
       </Card>
-    </div>
   )
 }

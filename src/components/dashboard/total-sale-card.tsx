@@ -9,15 +9,13 @@ export default function TotalSaleCard() {
   const totalSale = "12,345"
 
   return (
-    <div>
-      <Card className="w-full max-w-sm my-5">
-        <CardHeader>
-          <CardTitle>ยอดขายรวม</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <h1 className="text-3xl font-bold">{totalSale} ฿</h1>
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-sm font-medium text-muted-foreground">ยอดขายรวม</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold">{totalSale} ฿</div>
+      </CardContent>
+    </Card>
   )
 }

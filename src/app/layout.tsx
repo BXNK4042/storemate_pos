@@ -28,12 +28,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
-      <body className="min-h-full flex flex-col m-7">
+      <body className="min-h-screen bg-background text-foreground">
         <SidebarProvider>
           <AppSidebar />
-          <main>
-            <SidebarTrigger />
-            {children}
+          <main className="flex-1 w-full min-h-screen flex flex-col">
+            <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+              <SidebarTrigger className="-ml-1" />
+            </header>
+            <div className="flex-1 p-6 md:p-8">
+              {children}
+            </div>
           </main>
         </SidebarProvider>
       </body>

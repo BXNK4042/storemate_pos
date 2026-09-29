@@ -30,19 +30,19 @@ const chartConfig = {
     label: "Sales",
   },
   classic_lays: {
-    label: "Lays",
+    label: "Classic Lays",
     color: "var(--chart-1)",
   },
   coca_cola: {
-    label: "Cola",
+    label: "Coca-Cola",
     color: "var(--chart-2)",
   },
   kitkat_bar: {
-    label: "KitKat",
+    label: "KitKat Bar",
     color: "var(--chart-3)",
   },
   oishi_green_tea: {
-    label: "Oishi",
+    label: "Oishi Green Tea",
     color: "var(--chart-4)",
   },
   other: {
