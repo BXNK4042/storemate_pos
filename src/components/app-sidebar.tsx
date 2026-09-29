@@ -13,19 +13,20 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div>
+        <div className="flex flex-row items-center gap-2 p-4">
           <Image
             src={ storemateLogo }
             alt="storemate_logo"
-            width={500}
-            height={500}
+            width={64}
+            height={64}
           />
-          <Link href="/">Storemate</Link>
+          <Link href="/" className="text-xl">Storemate</Link>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <Link href="/items">คลังสินค้า</Link>
+          <Link href="/cashier">แคชเชียร์</Link>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter />
