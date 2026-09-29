@@ -9,7 +9,7 @@ import {
 import Image from "next/image"
 import storemateLogo from "../../public/storemate_logo.jpg"
 import { Button } from "@/components/ui/button"
-import { LogOut } from 'lucide-react'
+import { LogOut, Box, BanknoteArrowUp } from 'lucide-react'
 
 export function AppSidebar() {
   return (
@@ -30,14 +30,15 @@ export function AppSidebar() {
 
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <Link href="/items">คลังสินค้า</Link>
-          <Link href="/cashier">แคชเชียร์</Link>
+        <SidebarGroup className="gap-4">
+          <h1 className="text-gray-800 ml-5 text-md">รายการ</h1>
+          <Link href="/items" className="text-gray-400 ml-5 flex gap-3"><Box/>คลังสินค้า</Link>
+          <Link href="/cashier" className="text-gray-400 ml-5 flex gap-3"><BanknoteArrowUp/>แคชเชียร์</Link>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <Button variant="outline">
-          <Link href="/" className="text-gray-600 flex gap-2"><LogOut />ออกจากระบบ</Link>
+          <Link href="/" className="text-gray-600 flex gap-2"><LogOut/>ออกจากระบบ</Link>
         </Button>
       </SidebarFooter>
     </Sidebar>

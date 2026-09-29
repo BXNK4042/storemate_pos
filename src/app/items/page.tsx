@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table"
 
 import Database from "better-sqlite3";
-import type { Item } from '/home/bankrupt/Projects/storemate_pos/types/item.ts';
+import type { Item } from '../../../types/item.ts';
 
 const db = new Database('backend/app.db')
 
@@ -16,7 +16,7 @@ export default function Item() {
   const items = db.prepare('SELECT * FROM items').all() as Item[];
 
   return (
-    <div>
+    <div className="my-5">
       <Table>
         <TableHeader>
           <TableRow>
