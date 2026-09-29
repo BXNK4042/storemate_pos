@@ -5,8 +5,11 @@ import {
   CardTitle
 } from "@/components/ui/card"
 
-export default function ProfitCard() {
-  const totalProfit = "456"
+interface ProfitCardProps {
+  totalProfit?: number | string
+}
+
+export default function ProfitCard({ totalProfit = "0" }: ProfitCardProps) {
 
   return (
     <Card className="w-full shadow-md">

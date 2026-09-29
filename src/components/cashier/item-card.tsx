@@ -10,12 +10,13 @@ import type { Item } from "../../../types/item"
 
 interface ItemCardProps {
   item?: Item
+  onAdd?: (item: Item) => void
 }
 
-export function ItemCard({ item }: ItemCardProps) {
-  const imageSrc = item?.item_images || "/uploads/items/classic_lays.jpg"
-  const name = item?.item_name || "เลย์รสคลาสสิก"
-  const price = item?.item_price ?? 20
+export function ItemCard({ item, onAdd }: ItemCardProps) {
+  const imageSrc = item?.item_images || ""
+  const name = item?.item_name || ""
+  const price = item?.item_price ?? 0
 
   return (
     <Card className="relative mx-auto w-full max-w-sm pt-0 overflow-hidden">
@@ -34,7 +35,7 @@ export function ItemCard({ item }: ItemCardProps) {
         </CardDescription>
       </CardHeader>
       <CardFooter>
-        <Button className="w-full">เพิ่มรายการ</Button>
+        <Button className="w-full" onClick={() => item && onAdd?.(item)}>เพิ่มรายการ</Button>
       </CardFooter>
     </Card>
   )

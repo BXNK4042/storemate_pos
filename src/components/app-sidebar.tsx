@@ -1,5 +1,8 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import storemateLogo from "../../public/storemate_logo.jpg"
 import {
   Sidebar,
@@ -13,9 +16,17 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { LogOut, Box, BanknoteArrowUp } from "lucide-react"
+import { LogOut, Box, BanknoteArrowUp, LayoutDashboard } from "lucide-react"
 
 export function AppSidebar() {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await fetch("/api/auth", { method: "DELETE" })
+    router.push("/login")
+    router.refresh()
+  }
+
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="border-b px-4 py-3">
@@ -41,6 +52,13 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
+              <SidebarMenuButton render={<Link href="/" />}>
+                <LayoutDashboard className="h-4 w-4" />
+                <span>ภาพรวม (Dashboard)</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
               <SidebarMenuButton render={<Link href="/items" />}>
                 <Box className="h-4 w-4" />
                 <span>คลังสินค้า (Inventory)</span>
@@ -60,9 +78,8 @@ export function AppSidebar() {
       <SidebarFooter className="border-t p-3">
         <Button
           variant="outline"
-          nativeButton={false}
+          onClick={handleLogout}
           className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-          render={<Link href="/" />}
         >
           <LogOut className="h-4 w-4" />
           <span>ออกจากระบบ</span>

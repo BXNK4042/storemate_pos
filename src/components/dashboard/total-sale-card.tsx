@@ -5,8 +5,11 @@ import {
   CardTitle
 } from "@/components/ui/card"
 
-export default function TotalSaleCard() {
-  const totalSale = "12,345"
+interface TotalSaleCardProps {
+  totalSale?: number | string
+}
+
+export default function TotalSaleCard({ totalSale = "0" }: TotalSaleCardProps) {
 
   return (
     <Card className="w-full shadow-md">
