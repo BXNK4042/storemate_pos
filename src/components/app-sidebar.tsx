@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/sidebar"
 import Image from "next/image"
 import storemateLogo from "../../public/storemate_logo.jpg"
+import { Button } from "@/components/ui/button"
+import { LogOut } from 'lucide-react'
 
 export function AppSidebar() {
   return (
@@ -33,7 +35,11 @@ export function AppSidebar() {
           <Link href="/cashier">แคชเชียร์</Link>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter />
+      <SidebarFooter>
+        <Button variant="outline">
+          <Link href="/" className="text-gray-600 flex gap-2"><LogOut />ออกจากระบบ</Link>
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   )
 }
