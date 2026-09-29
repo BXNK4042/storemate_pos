@@ -5,7 +5,11 @@ db.pragma('foreign_keys = ON');
 
 const insert_items = `
   INSERT INTO items (item_name, item_price, item_amount, item_barcode)
-  VALUES ('Classic Lays', 20, 5, 'abcdefg')
+  VALUES 
+    ('Classic Lays', 20, 5, 'abcdefg'),
+    ('Coca-Cola 325ml', 15, 20, 'coke325ml'),
+    ('KitKat Bar', 25, 12, 'kitkatbar'),
+    ('Oishi Green Tea', 20, 10, 'oishitea')
 `;
 
 const insert_orders = `
