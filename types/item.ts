@@ -4,4 +4,6 @@ export interface Item {
   item_price: number;
   item_amount: number;
   item_barcode: string;
+  item_images?: string;
+  created_at?: string;
 }

@@ -3,9 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SummaryCard } from "@/components/cashier/summary-card"
+import { SearchInput } from "@/components/cashier/search-box"
+import { ItemCard } from "@/components/cashier/item-card"
+import type { Item } from "../../../types/item"
 
 export default function CashierPage() {
   const [data, setData] = useState('')
+  const [items, setItems] = useState<Item[]>([])
 
   const clearData = async () => {
     await fetch('/api/data', { method: 'DELETE' })
@@ -23,17 +28,32 @@ export default function CashierPage() {
       }
     }
 
+    const fetchItems = async () => {
+      try {
+        const res = await fetch('/api/items')
+        const json = await res.json()
+        if (Array.isArray(json)) {
+          setItems(json)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
     fetchData()
+    fetchItems()
   }, [])
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Cashier Terminal</h1>
-        <p className="text-sm text-muted-foreground">Scan barcodes to process customer checkout.</p>
+        <p className="text-sm text-muted-foreground">สแกนบาร์โค้ดเพื่อคิดเงินและชำระค่าสินค้า</p>
       </div>
 
-      <Card className="w-full">
+      <SearchInput/>
+
+      {/*<Card className="w-full">
         <CardHeader>
           <CardTitle className="text-sm font-medium text-muted-foreground">Active Barcode</CardTitle>
         </CardHeader>
@@ -47,7 +67,14 @@ export default function CashierPage() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </Card>*/}
+      <SummaryCard />
+      {/*map item in items table to each ItemCard*/}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {items.map((item) => (
+          <ItemCard key={item.item_id} item={item} />
+        ))}
+      </div>
     </div>
   )
 }

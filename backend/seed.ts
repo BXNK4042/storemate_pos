@@ -4,12 +4,12 @@ const db = new Database('backend/app.db');
 db.pragma('foreign_keys = ON');
 
 const insert_items = `
-  INSERT INTO items (item_name, item_price, item_amount, item_barcode)
+  INSERT INTO items (item_name, item_price, item_amount, item_barcode, item_images)
   VALUES 
-    ('Classic Lays', 20, 5, 'abcdefg'),
-    ('Coca-Cola 325ml', 15, 20, 'coke325ml'),
-    ('KitKat Bar', 25, 12, 'kitkatbar'),
-    ('Oishi Green Tea', 20, 10, 'oishitea')
+    ('Classic Lays', 20, 5, 'abcdefg', '/uploads/items/classic_lays.jpg'),
+    ('Coca-Cola 325ml', 15, 20, 'coke325ml', '/uploads/items/coca_cola_325ml.jpg'),
+    ('KitKat Bar', 25, 12, 'kitkatbar', '/uploads/items/kitkat_bar.jpg'),
+    ('Oishi Green Tea', 20, 10, 'oishitea', '/uploads/items/oishi_green_tea.jpg')
 `;
 
 const insert_orders = `

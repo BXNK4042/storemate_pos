@@ -34,7 +34,7 @@ const chartConfig = {
 
 export default function ChartBarDefault() {
   return (
-    <Card className="w-full">
+    <Card className="w-full shadow-md">
         <CardHeader>
           <CardTitle>ยอดขายรายวัน</CardTitle>
         </CardHeader>

@@ -36,7 +36,7 @@ const chartConfig = {
 
 export function ChartLineLinear() {
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
         <CardTitle>จำนวนลูกค้าวันที่ {date}</CardTitle>
       </CardHeader>

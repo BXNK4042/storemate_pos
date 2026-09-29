@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { LogOut, Box, BanknoteArrowUp, LayoutDashboard } from "lucide-react"
+import { LogOut, Box, BanknoteArrowUp } from "lucide-react"
 
 export function AppSidebar() {
   return (

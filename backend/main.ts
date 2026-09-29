@@ -8,6 +8,7 @@ const create_items = `
       item_price INTEGER NOT NULL,
       item_amount INTEGER NOT NULL,
       item_barcode TEXT NOT NULL,
+      item_images TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `;

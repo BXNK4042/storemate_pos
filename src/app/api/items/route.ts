@@ -1,10 +1,9 @@
-export async function GET() {
-  return Response.json({ message: "ok" })
-}
+import Database from "better-sqlite3"
+import type { Item } from "../../../../types/item"
 
-{/*
-  // app/api/items/route.ts
-  export async function GET(request: Request) {
-    return Response.json({ message: "ok" });
-  }
-*/}
+const db = new Database("backend/app.db")
+
+export async function GET() {
+  const items = db.prepare("SELECT * FROM items").all() as Item[]
+  return Response.json(items)
+}

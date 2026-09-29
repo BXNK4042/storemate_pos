@@ -53,7 +53,7 @@ const chartConfig = {
 
 export function ChartPieLegend() {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col shadow-md">
       <CardHeader className="items-center pb-0">
         <CardTitle>สินค้าขายดี</CardTitle>
       </CardHeader>
