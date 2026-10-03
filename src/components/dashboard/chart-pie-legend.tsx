@@ -12,6 +12,8 @@ import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
 
@@ -60,13 +62,22 @@ export function ChartPieLegend() {
       <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square"
+          className="mx-auto h-[220px] w-full pb-0"
         >
           <PieChart>
-            <Pie data={chartData} dataKey="sales" />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent hideLabel />}
+            />
+            <Pie
+              data={chartData}
+              dataKey="sales"
+              nameKey="item"
+              outerRadius={68}
+            />
             <ChartLegend
               content={<ChartLegendContent nameKey="item" />}
-              className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
+              className="-translate-y-1 flex-wrap gap-2 *:basis-1/4 *:justify-center"
             />
           </PieChart>
         </ChartContainer>

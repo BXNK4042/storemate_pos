@@ -41,7 +41,7 @@ export function ChartLineLinear() {
         <CardTitle>จำนวนลูกค้าวันที่ {date}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
+        <ChartContainer config={chartConfig} className="h-[220px] w-full">
           <LineChart
             accessibilityLayer
             data={chartData}
