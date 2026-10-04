@@ -1,87 +1,90 @@
-"use client"
+"use client";
 
-import { Pie, PieChart } from "recharts"
-
+import { Pie, PieChart, Cell } from "recharts";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart"
-
-export const description = "A pie chart with a legend"
-
-const chartData = [
-  { item: "classic_lays", sales: 275, fill: "var(--color-classic_lays)" },
-  { item: "coca_cola", sales: 200, fill: "var(--color-coca_cola)" },
-  { item: "kitkat_bar", sales: 187, fill: "var(--color-kitkat_bar)" },
-  { item: "oishi_green_tea", sales: 173, fill: "var(--color-oishi_green_tea)" },
-  { item: "other", sales: 90, fill: "var(--color-other)" },
-]
+} from "@/components/ui/chart";
 
 const chartConfig = {
   sales: {
-    label: "Sales",
+    label: "จำนวนชิ้น",
   },
-  classic_lays: {
-    label: "Lays",
-    color: "var(--chart-1)",
-  },
-  coca_cola: {
-    label: "Cola",
-    color: "var(--chart-2)",
-  },
-  kitkat_bar: {
-    label: "KitKat",
-    color: "var(--chart-3)",
-  },
-  oishi_green_tea: {
-    label: "Oishi",
-    color: "var(--chart-4)",
-  },
-  other: {
-    label: "Other",
-    color: "var(--chart-5)",
-  },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
-export function ChartPieLegend() {
+interface ChartPieLegendProps {
+  data?: { name: string; value: number; fill: string }[];
+  loading?: boolean;
+}
+
+export function ChartPieLegend({
+  data = [],
+  loading = false,
+}: ChartPieLegendProps) {
+  const chartData = data.length > 0 ? data : [
+    { name: "ยังไม่มีข้อมูล", value: 1, fill: "var(--muted, #e5e7eb)" },
+  ];
+
   return (
     <Card className="flex flex-col">
-      <CardHeader className="items-center pb-0">
-        <CardTitle>สินค้าขายดี</CardTitle>
+      <CardHeader className="items-center pb-2">
+        <CardTitle>5 สินค้าขายดีที่สุด</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto h-[220px] w-full pb-0"
-        >
-          <PieChart>
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Pie
-              data={chartData}
-              dataKey="sales"
-              nameKey="item"
-              outerRadius={68}
-            />
-            <ChartLegend
-              content={<ChartLegendContent nameKey="item" />}
-              className="-translate-y-1 flex-wrap gap-2 *:basis-1/4 *:justify-center"
-            />
-          </PieChart>
-        </ChartContainer>
+        {loading ? (
+          <div className="h-[220px] w-full bg-muted/40 animate-pulse rounded-lg" />
+        ) : (
+          <ChartContainer
+            config={chartConfig}
+            className="mx-auto h-[220px] w-full pb-0"
+          >
+            <PieChart>
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius={45}
+                outerRadius={80}
+                paddingAngle={4}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        )}
       </CardContent>
+      <CardFooter className="flex-col gap-2 pt-2 text-xs">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {chartData.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: item.fill }}
+              />
+              <span className="text-muted-foreground truncate max-w-[100px]">
+                {item.name}: {item.value} ชิ้น
+              </span>
+            </div>
+          ))}
+        </div>
+      </CardFooter>
     </Card>
-  )
+  );
 }

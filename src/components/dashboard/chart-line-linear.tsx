@@ -1,82 +1,85 @@
-"use client"
+"use client";
 
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts"
-
+import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart"
-
-const date = "30 ก.ย."
-
-const chartData = [
-  { time: "08", customer: 186 },
-  { time: "10", customer: 305 },
-  { time: "12", customer: 237 },
-  { time: "14", customer: 73 },
-  { time: "16", customer: 209 },
-  { time: "18", customer: 214 },
-]
+} from "@/components/ui/chart";
 
 const chartConfig = {
-  customer: {
-    label: "customer",
-    color: "var(--chart-1)",
+  sales: {
+    label: "ยอดขาย (฿)",
+    color: "var(--chart-2, #10b981)",
   },
-} satisfies ChartConfig
+} satisfies ChartConfig;
 
-export function ChartLineLinear() {
+interface ChartLineLinearProps {
+  data?: { label: string; sales: number }[];
+  loading?: boolean;
+}
+
+export function ChartLineLinear({
+  data = [],
+  loading = false,
+}: ChartLineLinearProps) {
+  const chartData = data.length > 0 ? data : [
+    { label: "08:00", sales: 0 },
+    { label: "12:00", sales: 0 },
+    { label: "16:00", sales: 0 },
+    { label: "20:00", sales: 0 },
+  ];
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>จำนวนลูกค้าวันที่ {date}</CardTitle>
+        <CardTitle>แนวโน้มยอดขายวันนี้ (ตามช่วงเวลา)</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[220px] w-full">
-          <LineChart
-            accessibilityLayer
-            data={chartData}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="time"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Line
-              dataKey="customer"
-              type="linear"
-              stroke="var(--color-customer)"
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        </ChartContainer>
+        {loading ? (
+          <div className="h-[220px] w-full bg-muted/40 animate-pulse rounded-lg" />
+        ) : (
+          <ChartContainer config={chartConfig} className="h-[220px] w-full">
+            <LineChart
+              accessibilityLayer
+              data={chartData}
+              margin={{ left: 12, right: 12 }}
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <Line
+                dataKey="sales"
+                type="linear"
+                stroke="var(--color-sales, #10b981)"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: "var(--color-sales, #10b981)" }}
+              />
+            </LineChart>
+          </ChartContainer>
+        )}
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="leading-none text-muted-foreground">
-          จำนวนลูกค้าในแต่ละช่วงเวลา
+          แสดงสถิติยอดจำหน่ายตามช่วงเวลาในรอบวัน
         </div>
       </CardFooter>
     </Card>
-  )
+  );
 }

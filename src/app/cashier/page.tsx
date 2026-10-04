@@ -14,7 +14,10 @@ import {
   CheckCircle2,
   AlertCircle,
   PackageCheck,
+  Printer,
 } from 'lucide-react';
+import { ReceiptModal, type ReceiptOrder } from '@/components/receipt-modal';
+import { PaymentDialog } from '@/components/payment-dialog';
 
 interface CartItem {
   item: Item;
@@ -34,6 +37,9 @@ export default function CashierPage() {
     id: string;
     total: number;
   } | null>(null);
+  const [receiptOrder, setReceiptOrder] = useState<ReceiptOrder | null>(null);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   // Load items from API
   const loadItems = useCallback(async () => {
@@ -52,11 +58,26 @@ export default function CashierPage() {
     loadItems();
   }, [loadItems]);
 
-  // Cart operations
+  // Cart operations with stock validation
   const addToCart = useCallback((item: Item) => {
+    if (item.item_amount <= 0) {
+      setNotification({
+        type: 'error',
+        message: `สินค้า "${item.item_name}" สินค้าหมด`,
+      });
+      return;
+    }
+
     setCart((prevCart) => {
       const existing = prevCart.find((ci) => ci.item.item_id === item.item_id);
       if (existing) {
+        if (existing.quantity >= item.item_amount) {
+          setNotification({
+            type: 'error',
+            message: `สินค้า "${item.item_name}" มีสต็อกเพียง ${item.item_amount} ชิ้น`,
+          });
+          return prevCart;
+        }
         return prevCart.map((ci) =>
           ci.item.item_id === item.item_id
             ? { ...ci, quantity: ci.quantity + 1 }
@@ -74,6 +95,13 @@ export default function CashierPage() {
         .map((ci) => {
           if (ci.item.item_id === itemId) {
             const nextQty = ci.quantity + delta;
+            if (delta > 0 && nextQty > ci.item.item_amount) {
+              setNotification({
+                type: 'error',
+                message: `สินค้า "${ci.item.item_name}" มีสต็อกเพียง ${ci.item.item_amount} ชิ้น`,
+              });
+              return ci;
+            }
             return nextQty > 0 ? { ...ci, quantity: nextQty } : null;
           }
           return ci;
@@ -155,10 +183,17 @@ export default function CashierPage() {
     [cart]
   );
 
-  // Confirm order
-  const handleConfirmOrder = async () => {
+  // Confirm and proceed to payment
+  const handleOpenPayment = () => {
     if (cart.length === 0) return;
+    setPaymentDialogOpen(true);
+  };
 
+  const handlePaymentSubmit = async (paymentInfo: {
+    method: 'cash' | 'promptpay';
+    amountPaid: number;
+    change: number;
+  }) => {
     setIsProcessing(true);
     try {
       const payload = cart.map((ci) => ({
@@ -171,11 +206,36 @@ export default function CashierPage() {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: payload }),
+        body: JSON.stringify({
+          items: payload,
+          payment_method: paymentInfo.method,
+          amount_paid: paymentInfo.amountPaid,
+          change_amount: paymentInfo.change,
+        }),
       });
 
       const data = await res.json();
       if (data.success) {
+        const orderSummary = {
+          order_id: data.order.order_id,
+          order_name: data.order.order_name,
+          order_price: data.order.order_price,
+          payment_method: paymentInfo.method,
+          amount_paid: paymentInfo.amountPaid,
+          change_amount: paymentInfo.change,
+          created_at: new Date().toISOString(),
+          items: cart.map((ci) => ({
+            item_id: ci.item.item_id,
+            item_name: ci.item.item_name,
+            item_price: ci.item.item_price,
+            quantity: ci.quantity,
+            subtotal: ci.item.item_price * ci.quantity,
+          })),
+        };
+
+        setPaymentDialogOpen(false);
+        setReceiptOrder(orderSummary);
+        setReceiptModalOpen(true);
         setCompletedOrder({
           id: data.order.order_name,
           total: data.order.order_price,
@@ -192,7 +252,7 @@ export default function CashierPage() {
           message: `เกิดข้อผิดพลาด: ${data.error || 'ไม่สามารถบันทึกรายการได้'}`,
         });
       }
-    } catch (err) {
+    } catch {
       setNotification({
         type: 'error',
         message: 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อบันทึกรายการได้',
@@ -240,7 +300,7 @@ export default function CashierPage() {
 
       {/* Completed Order Banner */}
       {completedOrder && (
-        <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <PackageCheck className="h-6 w-6 text-emerald-600" />
             <div>
@@ -250,14 +310,27 @@ export default function CashierPage() {
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-emerald-300 text-emerald-800 hover:bg-emerald-100"
-            onClick={() => setCompletedOrder(null)}
-          >
-            เริ่มรายการใหม่
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-emerald-300 text-emerald-800 hover:bg-emerald-100 gap-1.5"
+              onClick={() => setReceiptModalOpen(true)}
+            >
+              <Printer className="h-4 w-4" />
+              ดูใบเสร็จ
+            </Button>
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => {
+                setCompletedOrder(null);
+                setReceiptOrder(null);
+              }}
+            >
+              เริ่มรายการใหม่
+            </Button>
+          </div>
         </div>
       )}
 
@@ -306,8 +379,13 @@ export default function CashierPage() {
                     <h3 className="text-xs font-semibold leading-tight line-clamp-1 mt-0.5 text-foreground">
                       {item.item_name}
                     </h3>
-                    <div className="text-[10px] text-muted-foreground">
-                      คงเหลือ: {item.item_amount} ชิ้น
+                    <div className="text-[10px] text-muted-foreground flex items-center justify-between">
+                      <span>คงเหลือ: {item.item_amount} ชิ้น</span>
+                      {item.item_amount <= 0 && (
+                        <span className="text-[9px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">
+                          หมด
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -319,9 +397,10 @@ export default function CashierPage() {
                       size="sm"
                       className="h-6 px-2 text-[11px] cursor-pointer"
                       onClick={() => addToCart(item)}
+                      disabled={item.item_amount <= 0}
                     >
                       <Plus className="h-3 w-3 mr-0.5" />
-                      เพิ่ม
+                      {item.item_amount <= 0 ? "หมด" : "เพิ่ม"}
                     </Button>
                   </div>
                 </div>
@@ -386,6 +465,7 @@ export default function CashierPage() {
                           size="icon"
                           className="h-7 w-7 cursor-pointer"
                           onClick={() => updateQuantity(ci.item.item_id, 1)}
+                          disabled={ci.quantity >= ci.item.item_amount}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -422,17 +502,31 @@ export default function CashierPage() {
                   ล้างรายการ
                 </Button>
                 <Button
-                  className="cursor-pointer"
-                  onClick={handleConfirmOrder}
+                  className="cursor-pointer font-bold"
+                  onClick={handleOpenPayment}
                   disabled={cart.length === 0 || isProcessing}
                 >
-                  {isProcessing ? 'กำลังบันทึก...' : 'ยืนยันรายการ'}
+                  {isProcessing ? 'กำลังบันทึก...' : 'ชำระเงิน'}
                 </Button>
               </div>
             </CardFooter>
           </Card>
         </div>
       </div>
+
+      <PaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        totalAmount={totalAmount}
+        onConfirm={handlePaymentSubmit}
+        isSubmitting={isProcessing}
+      />
+
+      <ReceiptModal
+        open={receiptModalOpen}
+        onOpenChange={setReceiptModalOpen}
+        order={receiptOrder}
+      />
     </div>
   );
 }
