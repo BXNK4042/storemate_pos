@@ -33,8 +33,12 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      localStorage.setItem("storemate_session", data.token);
+      const secureFlag = location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `storemate_session=${data.token}; path=/; max-age=86400; SameSite=Lax${secureFlag}`;
+
+      // Hard redirect to ensure session cookie is picked up properly
+      window.location.href = "/";
     } catch {
       setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     } finally {

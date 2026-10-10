@@ -34,8 +34,13 @@ export async function POST(req: Request) {
       role: user.user_role,
     });
 
+    const isSecure =
+      req.headers.get("x-forwarded-proto") === "https" ||
+      process.env.NODE_ENV === "production";
+
     const response = NextResponse.json({
       success: true,
+      token,
       user: {
         userId: user.user_id,
         username: user.user_name,
@@ -44,8 +49,8 @@ export async function POST(req: Request) {
     });
 
     response.cookies.set("storemate_session", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      httpOnly: false,
+      secure: isSecure,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24, // 1 day
