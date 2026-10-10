@@ -43,8 +43,43 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
-  const orders = db.prepare("SELECT * FROM orders ORDER BY order_id DESC LIMIT 20").all()
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const limit = Math.min(Number(searchParams.get("limit") || 50), 100)
+
+  const orders = db.prepare("SELECT * FROM orders ORDER BY order_id DESC LIMIT ?").all(limit) as Array<{
+    order_id: number
+    order_name: string
+    order_price: number
+    created_at?: string
+    items?: Array<{
+      item_id: number
+      quantity: number
+      item_name: string
+      item_price: number
+      item_images?: string | null
+      item_barcode?: string
+    }>
+  }>
+
+  const orderItemStmt = db.prepare(`
+    SELECT oi.item_id, oi.quantity, COALESCE(i.item_name, 'Unknown Item') as item_name, COALESCE(i.item_price, 0) as item_price, i.item_images, i.item_barcode
+    FROM order_items oi
+    LEFT JOIN items i ON oi.item_id = i.item_id
+    WHERE oi.order_id = ?
+  `)
+
+  for (const order of orders) {
+    order.items = orderItemStmt.all(order.order_id) as Array<{
+      item_id: number
+      quantity: number
+      item_name: string
+      item_price: number
+      item_images?: string | null
+      item_barcode?: string
+    }>
+  }
+
   const salesRow = db
     .prepare("SELECT COALESCE(SUM(order_price), 0) AS total_sales FROM orders")
     .get() as { total_sales: number }

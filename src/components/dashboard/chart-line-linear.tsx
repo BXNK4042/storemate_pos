@@ -1,7 +1,6 @@
 "use client"
 
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts"
-
 import {
   Card,
   CardContent,
@@ -16,29 +15,31 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 
-const date = "30 ก.ย."
-
-const chartData = [
-  { time: "08", customer: 186 },
-  { time: "10", customer: 305 },
-  { time: "12", customer: 237 },
-  { time: "14", customer: 73 },
-  { time: "16", customer: 209 },
-  { time: "18", customer: 214 },
+const defaultData = [
+  { time: "08:00", customer: 0 },
+  { time: "12:00", customer: 0 },
+  { time: "16:00", customer: 0 },
+  { time: "20:00", customer: 0 },
 ]
 
 const chartConfig = {
   customer: {
-    label: "customer",
-    color: "var(--chart-1)",
+    label: "จำนวนออเดอร์",
+    color: "var(--chart-2)",
   },
 } satisfies ChartConfig
 
-export function ChartLineLinear() {
+interface ChartLineLinearProps {
+  data?: Array<{ time: string; customer: number }>
+}
+
+export function ChartLineLinear({ data }: ChartLineLinearProps) {
+  const chartData = data && data.length > 0 ? data : defaultData
+
   return (
     <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>จำนวนลูกค้าวันที่ {date}</CardTitle>
+        <CardTitle>ความหนาแน่นคำสั่งซื้อตามช่วงเวลา</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
@@ -56,7 +57,6 @@ export function ChartLineLinear() {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value) => value.slice(0, 3)}
             />
             <ChartTooltip
               cursor={false}
@@ -74,7 +74,7 @@ export function ChartLineLinear() {
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="leading-none text-muted-foreground">
-          จำนวนลูกค้าในแต่ละช่วงเวลา
+          จำนวนคำสั่งซื้อเฉลี่ยแบ่งตามชั่วโมง
         </div>
       </CardFooter>
     </Card>

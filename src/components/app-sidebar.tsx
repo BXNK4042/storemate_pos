@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { LogOut, Box, BanknoteArrowUp, LayoutDashboard } from "lucide-react"
+import { LogOut, Box, BanknoteArrowUp, LayoutDashboard, Receipt } from "lucide-react"
 
 export function AppSidebar() {
   const router = useRouter()
@@ -69,6 +69,13 @@ export function AppSidebar() {
               <SidebarMenuButton render={<Link href="/cashier" />}>
                 <BanknoteArrowUp className="h-4 w-4" />
                 <span>แคชเชียร์ (Cashier)</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton render={<Link href="/orders" />}>
+                <Receipt className="h-4 w-4" />
+                <span>ประวัติการขาย (Orders)</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

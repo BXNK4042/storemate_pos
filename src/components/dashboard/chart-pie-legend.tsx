@@ -1,7 +1,6 @@
 "use client"
 
 import { Pie, PieChart } from "recharts"
-
 import {
   Card,
   CardContent,
@@ -15,55 +14,52 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 
-export const description = "A pie chart with a legend"
-
-const chartData = [
-  { item: "classic_lays", sales: 275, fill: "var(--color-classic_lays)" },
-  { item: "coca_cola", sales: 200, fill: "var(--color-coca_cola)" },
-  { item: "kitkat_bar", sales: 187, fill: "var(--color-kitkat_bar)" },
-  { item: "oishi_green_tea", sales: 173, fill: "var(--color-oishi_green_tea)" },
-  { item: "other", sales: 90, fill: "var(--color-other)" },
+const COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ]
 
-const chartConfig = {
-  sales: {
-    label: "Sales",
-  },
-  classic_lays: {
-    label: "Classic Lays",
-    color: "var(--chart-1)",
-  },
-  coca_cola: {
-    label: "Coca-Cola",
-    color: "var(--chart-2)",
-  },
-  kitkat_bar: {
-    label: "KitKat Bar",
-    color: "var(--chart-3)",
-  },
-  oishi_green_tea: {
-    label: "Oishi Green Tea",
-    color: "var(--chart-4)",
-  },
-  other: {
-    label: "Other",
-    color: "var(--chart-5)",
-  },
-} satisfies ChartConfig
+interface ChartPieLegendProps {
+  data?: Array<{ item: string; sales: number; fill?: string }>
+}
 
-export function ChartPieLegend() {
+export function ChartPieLegend({ data }: ChartPieLegendProps) {
+  const chartData = (data && data.length > 0
+    ? data
+    : [{ item: "ไม่มีข้อมูล", sales: 1 }]
+  ).map((d, idx) => ({
+    ...d,
+    fill: d.fill || COLORS[idx % COLORS.length],
+  }))
+
+  const chartConfig = {
+    sales: {
+      label: "ยอดขาย",
+    },
+    ...chartData.reduce((acc, curr) => {
+      acc[curr.item] = {
+        label: curr.item,
+        color: curr.fill,
+      }
+      return acc
+    }, {} as Record<string, { label: string; color: string }>),
+  } satisfies ChartConfig
+
   return (
     <Card className="flex flex-col shadow-md">
       <CardHeader className="items-center pb-0">
-        <CardTitle>สินค้าขายดี</CardTitle>
+        <CardTitle>สินค้าขายดีตามจำนวนชิ้น</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square"
+          className="mx-auto aspect-square max-h-[300px]"
         >
           <PieChart>
-            <Pie data={chartData} dataKey="sales" />
+            <Pie data={chartData} dataKey="sales" nameKey="item" />
             <ChartLegend
               content={<ChartLegendContent nameKey="item" />}
               className="-translate-y-2 flex-wrap gap-2 *:basis-1/4 *:justify-center"
