@@ -9,6 +9,12 @@ export default function OrdersPage() {
     order_id: o.order_id,
     order_name: o.order_name,
     order_price: o.order_price,
+    subtotal: o.subtotal,
+    discount_type: o.discount_type,
+    discount_value: o.discount_value,
+    discount_amount: o.discount_amount,
+    status: o.status,
+    refund_reason: o.refund_reason,
     created_at: o.created_at,
     total_quantity: o.total_quantity,
   }));

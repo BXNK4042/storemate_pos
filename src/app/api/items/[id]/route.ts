@@ -1,4 +1,5 @@
 import { updateItem, deleteItem } from "@/lib/items";
+import { getSessionFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSessionFromRequest(req);
     const { id } = await params;
     const itemId = parseInt(id, 10);
 
@@ -18,7 +20,17 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { item_name, item_price, item_amount, item_barcode, item_image } = body;
+    const {
+      item_name,
+      item_price,
+      item_amount,
+      item_barcode,
+      item_image,
+      expiry_date,
+      low_stock_threshold,
+      reason,
+      note,
+    } = body;
 
     if (!item_name || typeof item_name !== "string" || !item_name.trim()) {
       return Response.json(
@@ -56,6 +68,20 @@ export async function PUT(
       item_amount: amount,
       item_barcode,
       item_image,
+      expiry_date:
+        expiry_date !== undefined
+          ? expiry_date ? String(expiry_date).trim() : null
+          : undefined,
+      low_stock_threshold:
+        low_stock_threshold !== undefined
+          ? low_stock_threshold !== null && low_stock_threshold !== ""
+            ? Number(low_stock_threshold)
+            : null
+          : undefined,
+      reason,
+      note,
+      user_id: session?.userId || null,
+      user_name: session?.username || null,
     });
 
     if (error) {

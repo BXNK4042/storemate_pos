@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrder, getOrders, type CreateOrderItemInput } from "@/lib/orders";
+import { getSessionFromRequest } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,9 +24,19 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: Request) {
   try {
+    const session = await getSessionFromRequest(req);
     const body = await req.json();
     const items = body.items as CreateOrderItemInput[];
-    const { payment_method, amount_paid, change_amount } = body;
+    const {
+      payment_method,
+      amount_paid,
+      change_amount,
+      discount_type,
+      discount_value,
+      promptpay_type,
+      promptpay_ref,
+      promptpay_payload,
+    } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -34,17 +45,39 @@ export async function POST(req: Request) {
       );
     }
 
+    if (payment_method === "cash" && amount_paid !== undefined) {
+      if (typeof amount_paid !== "number" || isNaN(amount_paid) || amount_paid < 0 || amount_paid > 10_000_000) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "INVALID_CASH_AMOUNT",
+            error: "จำนวนเงินสดที่ระบุไม่ถูกต้อง (ต้องอยู่ระหว่าง 0 ถึง 10,000,000 บาท)",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const order = createOrder(items, {
       payment_method,
       amount_paid,
       change_amount,
+      discount_type,
+      discount_value,
+      promptpay_type,
+      promptpay_ref,
+      promptpay_payload,
+      user_id: session?.userId || null,
+      user_name: session?.username || null,
     });
     return NextResponse.json({ success: true, order });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Order creation failed:", err);
+    const errorCode = (err as { code?: string })?.code;
     return NextResponse.json(
       {
         success: false,
+        code: errorCode,
         error: err instanceof Error ? err.message : "Internal error",
       },
       { status: 400 }

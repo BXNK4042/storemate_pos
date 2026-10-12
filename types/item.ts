@@ -5,4 +5,6 @@ export interface Item {
   item_amount: number;
   item_barcode: string;
   item_image?: string | null;
+  expiry_date?: string | null;
+  low_stock_threshold?: number | null; // NULL inherits global default
 }

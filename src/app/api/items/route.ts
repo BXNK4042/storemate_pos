@@ -1,4 +1,5 @@
 import { getItems, createItem } from "@/lib/items";
+import { getSessionFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +13,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const session = await getSessionFromRequest(req);
     const body = await req.json();
-    const { item_name, item_price, item_amount, item_barcode } = body;
+    const { item_name, item_price, item_amount, item_barcode, item_image, expiry_date, low_stock_threshold } = body;
 
     if (!item_name || typeof item_name !== "string" || !item_name.trim()) {
       return Response.json(
@@ -50,6 +52,14 @@ export async function POST(req: Request) {
       item_price: price,
       item_amount: amount,
       item_barcode,
+      item_image: item_image || null,
+      expiry_date: expiry_date ? String(expiry_date).trim() : null,
+      low_stock_threshold:
+        low_stock_threshold !== undefined && low_stock_threshold !== null && low_stock_threshold !== ""
+          ? Number(low_stock_threshold)
+          : null,
+      user_id: session?.userId || null,
+      user_name: session?.username || null,
     });
 
     if (error) {

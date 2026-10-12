@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import Storemate_Mascot from "../../public/storemate_mascot.png";
 import ChartBarDefault from "../components/dashboard/chart-bar-default";
@@ -87,27 +88,32 @@ export default function DashboardView({ initialStats }: DashboardViewProps) {
           </CardContent>
         </Card>
 
-        <Card className="w-full">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              คลังสินค้า
-            </CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
-            ) : (
-              <div className="text-4xl font-extrabold tracking-tight text-gray-900">
-                {stats?.totalProducts ?? 0}
-              </div>
-            )}
-            <p className="mt-1 text-xs flex items-center gap-1 text-amber-600 font-medium">
-              <AlertTriangle className="h-3 w-3" />
-              ใกล้หมด {stats?.lowStockProducts ?? 0} รายการ
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/items?filter=attention" className="block focus:outline-none">
+          <Card className="w-full hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                คลังสินค้า
+              </CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
+              ) : (
+                <div className="text-4xl font-extrabold tracking-tight text-gray-900">
+                  {stats?.totalProducts ?? 0}
+                </div>
+              )}
+              <p className="mt-1 text-xs flex items-center justify-between">
+                <span className="flex items-center gap-1 text-amber-600 font-medium">
+                  <AlertTriangle className="h-3 w-3" />
+                  สต็อกวิกฤต {stats?.lowStockProducts ?? 0} รายการ
+                </span>
+                <span className="text-[10px] text-muted-foreground underline">ดูรายการ</span>
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* Mascot Banner Card */}
         <Card className="relative overflow-hidden border-orange-200 bg-gradient-to-br from-amber-50 to-orange-50">

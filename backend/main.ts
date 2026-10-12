@@ -8,8 +8,12 @@ const create_items = `
       item_price INTEGER NOT NULL,
       item_amount INTEGER NOT NULL,
       item_barcode TEXT NOT NULL,
+      item_image TEXT,
+      expiry_date TEXT,
+      low_stock_threshold INTEGER DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE INDEX IF NOT EXISTS idx_items_low_stock ON items(item_amount, low_stock_threshold);
 `;
 
 const create_orders = `
@@ -17,6 +21,18 @@ const create_orders = `
       order_id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_name TEXT NOT NULL,
       order_price INTEGER NOT NULL,
+      subtotal REAL DEFAULT 0,
+      discount_type TEXT,
+      discount_value REAL DEFAULT 0,
+      discount_amount REAL DEFAULT 0,
+      payment_method TEXT DEFAULT 'cash',
+      amount_paid REAL DEFAULT 0,
+      change_amount REAL DEFAULT 0,
+      promptpay_type TEXT,
+      promptpay_ref TEXT,
+      promptpay_payload TEXT,
+      status TEXT DEFAULT 'completed',
+      refund_reason TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `;
@@ -36,10 +52,72 @@ const create_order_items = `
       order_id INTEGER NOT NULL,
       item_id INTEGER NOT NULL,
       quantity INTEGER DEFAULT 1,
+      discount_type TEXT,
+      discount_value REAL DEFAULT 0,
+      discount_amount REAL DEFAULT 0,
+      final_price REAL DEFAULT 0,
       PRIMARY KEY (order_id, item_id),
       FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
       FOREIGN KEY (item_id) REFERENCES items(item_id)
   );
+`;
+
+const create_settings = `
+  CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`;
+
+const create_stock_adjustments = `
+  CREATE TABLE IF NOT EXISTS stock_adjustments (
+      adjustment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_id INTEGER NOT NULL,
+      change_qty INTEGER NOT NULL,
+      previous_qty INTEGER NOT NULL,
+      new_qty INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      reference_id TEXT,
+      note TEXT,
+      user_id INTEGER,
+      user_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_stock_adjustments_item_id 
+      ON stock_adjustments(item_id);
+
+  CREATE INDEX IF NOT EXISTS idx_stock_adjustments_created_at 
+      ON stock_adjustments(created_at DESC);
+
+  CREATE INDEX IF NOT EXISTS idx_stock_adjustments_reason 
+      ON stock_adjustments(reason);
+`;
+
+const create_waste_records = `
+  CREATE TABLE IF NOT EXISTS waste_records (
+      waste_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL CHECK (quantity > 0),
+      unit_cost REAL NOT NULL DEFAULT 0,
+      total_cost REAL NOT NULL DEFAULT 0,
+      reason TEXT NOT NULL CHECK (reason IN ('damaged', 'spoiled', 'expired', 'discarded', 'other')),
+      notes TEXT,
+      user_id INTEGER,
+      user_name TEXT,
+      adjustment_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+      FOREIGN KEY (adjustment_id) REFERENCES stock_adjustments(adjustment_id) ON DELETE SET NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_waste_records_item_id ON waste_records(item_id);
+  CREATE INDEX IF NOT EXISTS idx_waste_records_created_at ON waste_records(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_waste_records_reason ON waste_records(reason);
 `;
 
 db.pragma('foreign_keys = ON');
@@ -47,3 +125,6 @@ db.exec(create_items);
 db.exec(create_orders);
 db.exec(create_users);
 db.exec(create_order_items);
+db.exec(create_settings);
+db.exec(create_stock_adjustments);
+db.exec(create_waste_records);

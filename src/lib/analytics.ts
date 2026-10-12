@@ -1,4 +1,6 @@
 import getDb from "./db";
+import { ensureOrderColumns } from "./orders";
+import { getLowStockSummary } from "./stock-alerts";
 
 export interface DashboardStats {
   totalRevenue: number;
@@ -23,14 +25,16 @@ const PIE_COLORS = [
 
 export function getDashboardStats(): DashboardStats {
   const db = getDb();
+  ensureOrderColumns(db);
 
-  // Total revenue & orders
+  // Total revenue & orders (excluding refunded)
   const totals = db
     .prepare(`
       SELECT 
         COALESCE(SUM(order_price), 0) AS totalRevenue,
         COUNT(order_id) AS totalOrders
       FROM orders
+      WHERE COALESCE(status, 'completed') != 'refunded'
     `)
     .get() as { totalRevenue: number; totalOrders: number };
 
@@ -42,6 +46,7 @@ export function getDashboardStats(): DashboardStats {
         COUNT(order_id) AS todayOrders
       FROM orders
       WHERE date(created_at, 'localtime') = date('now', 'localtime')
+        AND COALESCE(status, 'completed') != 'refunded'
     `)
     .get() as { todayRevenue: number; todayOrders: number };
 
@@ -52,18 +57,12 @@ export function getDashboardStats(): DashboardStats {
         COALESCE(SUM(order_price), 0) AS monthRevenue
       FROM orders
       WHERE strftime('%Y-%m', created_at, 'localtime') = strftime('%Y-%m', 'now', 'localtime')
+        AND COALESCE(status, 'completed') != 'refunded'
     `)
     .get() as { monthRevenue: number };
 
   // Inventory stats
-  const inventory = db
-    .prepare(`
-      SELECT 
-        COUNT(item_id) AS totalProducts,
-        COALESCE(SUM(CASE WHEN item_amount <= 3 THEN 1 ELSE 0 END), 0) AS lowStockProducts
-      FROM items
-    `)
-    .get() as { totalProducts: number; lowStockProducts: number };
+  const stockSummary = getLowStockSummary(db);
 
   // Last 7 days sales for Bar Chart
   const last7Days = db
@@ -81,6 +80,7 @@ export function getDashboardStats(): DashboardStats {
         COUNT(o.order_id) AS orders
       FROM dates d
       LEFT JOIN orders o ON date(o.created_at, 'localtime') = d.date_val
+        AND COALESCE(o.status, 'completed') != 'refunded'
       GROUP BY d.date_val
       ORDER BY d.date_val ASC
     `)
@@ -104,6 +104,7 @@ export function getDashboardStats(): DashboardStats {
         date(o.created_at, 'localtime') = date('now', 'localtime')
         AND CAST(strftime('%H', o.created_at, 'localtime') AS INTEGER) >= h.h
         AND CAST(strftime('%H', o.created_at, 'localtime') AS INTEGER) < h.h + 2
+        AND COALESCE(o.status, 'completed') != 'refunded'
       GROUP BY h.h
       ORDER BY h.h ASC
     `)
@@ -117,6 +118,8 @@ export function getDashboardStats(): DashboardStats {
         COALESCE(SUM(oi.quantity), 0) AS value
       FROM order_items oi
       JOIN items i ON oi.item_id = i.item_id
+      JOIN orders o ON oi.order_id = o.order_id
+      WHERE COALESCE(o.status, 'completed') != 'refunded'
       GROUP BY oi.item_id
       ORDER BY value DESC
       LIMIT 5
@@ -135,8 +138,8 @@ export function getDashboardStats(): DashboardStats {
     todayRevenue: Number(today.todayRevenue),
     todayOrders: Number(today.todayOrders),
     monthRevenue: Number(month.monthRevenue),
-    totalProducts: Number(inventory.totalProducts),
-    lowStockProducts: Number(inventory.lowStockProducts),
+    totalProducts: Number(stockSummary.totalProducts),
+    lowStockProducts: Number(stockSummary.attentionCount),
     salesBarChart: last7Days,
     salesLineChart: hourlyTrend,
     topItemsPieChart,

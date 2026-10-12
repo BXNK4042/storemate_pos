@@ -16,6 +16,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
@@ -25,7 +26,11 @@ import {
   LogOut,
   User,
   ShieldCheck,
+  QrCode,
+  ClipboardList,
+  Trash2,
 } from "lucide-react";
+import { PaymentSettingsDialog } from "@/components/settings/payment-settings-dialog";
 
 interface UserInfo {
   userId: number;
@@ -37,6 +42,28 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+  const [paymentSettingsOpen, setPaymentSettingsOpen] = useState(false);
+  const [lowStockAttentionCount, setLowStockAttentionCount] = useState<number>(0);
+
+  useEffect(() => {
+    async function loadLowStockBadge() {
+      try {
+        const res = await fetch("/api/inventory/low-stock");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.summary) {
+            setLowStockAttentionCount(data.summary.attentionCount || 0);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    loadLowStockBadge();
+    const interval = setInterval(loadLowStockBadge, 30000);
+    return () => clearInterval(interval);
+  }, [pathname]);
 
   useEffect(() => {
     async function loadUser() {
@@ -90,6 +117,18 @@ export function AppSidebar() {
       icon: Package,
       roles: ["admin"],
     },
+    {
+      title: "ประวัติสต็อก",
+      url: "/items/adjustments",
+      icon: ClipboardList,
+      roles: ["admin"],
+    },
+    {
+      title: "บันทึกของเสีย",
+      url: "/items/waste",
+      icon: Trash2,
+      roles: ["admin", "cashier"],
+    },
   ];
 
   const visibleNavItems = navItems.filter((item) =>
@@ -141,9 +180,27 @@ export function AppSidebar() {
                       <Icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </SidebarMenuButton>
+                    {item.url === "/items" && lowStockAttentionCount > 0 && (
+                      <SidebarMenuBadge className="bg-amber-100 text-amber-900 font-bold border border-amber-300 text-[10px]">
+                        {lowStockAttentionCount}
+                      </SidebarMenuBadge>
+                    )}
                   </SidebarMenuItem>
                 );
               })}
+
+              {(!currentUser || currentUser.role === "admin") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setPaymentSettingsOpen(true)}
+                    tooltip="ตั้งค่าพร้อมเพย์"
+                    className="gap-3 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    <span>ตั้งค่าพร้อมเพย์</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -180,6 +237,11 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <PaymentSettingsDialog
+        open={paymentSettingsOpen}
+        onOpenChange={setPaymentSettingsOpen}
+      />
     </Sidebar>
   );
 }
