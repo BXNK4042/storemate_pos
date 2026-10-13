@@ -539,7 +539,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
                         amount={item.item_amount}
                         threshold={item.low_stock_threshold}
                         defaultThreshold={defaultThreshold}
-                        showThresholdHint={true}
                       />
                     </TableCell>
                     <TableCell className="text-center">
