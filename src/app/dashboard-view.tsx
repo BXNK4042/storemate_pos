@@ -67,14 +67,14 @@ export default function DashboardView({ initialStats }: DashboardViewProps) {
           loading={loading}
         />
 
-        <Card className="w-full">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="w-full py-3.5 gap-2">
+          <CardHeader className="flex flex-row items-center justify-between p-0 px-4">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               ออเดอร์วันนี้
             </CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 px-4">
             {loading ? (
               <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
             ) : (
@@ -89,14 +89,14 @@ export default function DashboardView({ initialStats }: DashboardViewProps) {
         </Card>
 
         <Link href="/items?filter=attention" className="block focus:outline-none">
-          <Card className="w-full hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <Card className="w-full py-3.5 gap-2 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between p-0 px-4">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 คลังสินค้า
               </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 px-4">
               {loading ? (
                 <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
               ) : (
@@ -116,8 +116,10 @@ export default function DashboardView({ initialStats }: DashboardViewProps) {
         </Link>
 
         {/* Mascot Banner Card */}
-        <Card className="relative overflow-hidden border-orange-200 bg-gradient-to-br from-amber-50 to-orange-50">
-          <CardContent className="flex items-center justify-between p-4">
+        <Card className="relative overflow-hidden border-orange-200 bg-gradient-to-br from-amber-50 to-orange-50 py-0">
+          <div className="pointer-events-none absolute -top-8 -right-8 h-32 w-32 rounded-full bg-orange-200/50 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-amber-200/40 blur-xl" />
+          <CardContent className="relative z-10 flex items-center justify-between p-4">
             <div className="z-10">
               <div className="flex items-center gap-1.5 text-sm font-semibold text-orange-700">
                 <Sparkles className="h-4 w-4" />
@@ -126,18 +128,21 @@ export default function DashboardView({ initialStats }: DashboardViewProps) {
               <p className="mt-1 text-xs font-medium text-orange-900">
                 พร้อมให้บริการแคชเชียร์
               </p>
-              <span className="mt-2 inline-block rounded-full bg-orange-100 px-2.5 py-0.5 text-[11px] font-medium text-orange-800">
+              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/80 backdrop-blur-xs px-2.5 py-0.5 text-[11px] font-medium text-orange-800 shadow-xs border border-orange-200/60">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 สถานะระบบ: ออนไลน์
               </span>
             </div>
-            <div className="relative -my-3 -mr-2 h-24 w-24 shrink-0">
-              <Image
-                src={Storemate_Mascot}
-                alt="StoreMate mascot"
-                fill
-                className="object-contain"
-                priority
-              />
+            <div className="relative flex items-center justify-center h-20 w-20 rounded-full bg-white shadow-md ring-4 ring-orange-200/70 p-2.5 shrink-0 overflow-hidden group">
+              <div className="relative h-full w-full">
+                <Image
+                  src={Storemate_Mascot}
+                  alt="StoreMate mascot"
+                  fill
+                  className="object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
+                  priority
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

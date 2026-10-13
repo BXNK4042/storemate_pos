@@ -30,6 +30,12 @@ function initTables(db: Database.Database) {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS active_cart (
+      item_id INTEGER PRIMARY KEY,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,

@@ -203,6 +203,7 @@ export default function CashierPage() {
     setOrderDiscountType('none');
     setOrderDiscountValue(0);
     setCompletedOrder(null);
+    fetch('/api/data?clear_cart=true', { method: 'DELETE' }).catch(console.error);
   };
 
   const openItemDiscountDialog = (cartItem: CartItem) => {
@@ -316,6 +317,19 @@ export default function CashierPage() {
     const interval = setInterval(checkBarcodeScanner, 1200);
     return () => clearInterval(interval);
   }, [items, checkBarcodeScanner]);
+
+  // Synchronize cashier cart to active_cart in backend so scanner display always reflects latest summary
+  useEffect(() => {
+    const payload = cart.map((ci) => ({
+      item_id: ci.item.item_id,
+      quantity: ci.quantity,
+    }));
+    fetch('/api/data', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cart: payload }),
+    }).catch(console.error);
+  }, [cart]);
 
   // Filter items by search query
   const filteredItems = useMemo(() => {
@@ -464,6 +478,7 @@ export default function CashierPage() {
         setCart([]);
         setOrderDiscountType('none');
         setOrderDiscountValue(0);
+        fetch('/api/data?clear_cart=true', { method: 'DELETE' }).catch(console.error);
         setNotification({
           type: 'success',
           message: `ชำระเงินสำเร็จ! เลขที่ ${data.order.order_name}`,

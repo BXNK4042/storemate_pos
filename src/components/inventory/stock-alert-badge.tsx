@@ -43,7 +43,7 @@ export function StockAlertBadge({
       <div className={`inline-flex flex-col items-end gap-0.5 ${className}`}>
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          <span>เหลือน้อย ({amount})</span>
+          <span>สต็อกใกล้หมด ({amount})</span>
         </span>
         {showThresholdHint && (
           <span className="text-[10px] text-amber-700/80 font-mono">

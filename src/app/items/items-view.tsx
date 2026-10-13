@@ -31,21 +31,16 @@ import {
   ImageIcon,
   Pencil,
   Trash2,
-  AlertTriangle,
-  Clock,
   SlidersHorizontal,
   History,
   Settings2,
-  PackageX,
 } from "lucide-react";
 import type { Item } from "@/types/item";
-import { getExpiryStatus, formatExpiryDate } from "@/lib/expiry";
 import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
 import { ItemStockHistorySheet } from "@/components/inventory/item-stock-history-sheet";
 import { StockAlertBadge } from "@/components/inventory/stock-alert-badge";
 import { StockAlertBanner } from "@/components/inventory/stock-alert-banner";
 import { StockSettingsDialog } from "@/components/settings/stock-settings-dialog";
-import { WasteLogDialog } from "@/components/inventory/waste-log-dialog";
 import { getEffectiveThreshold, evaluateStockStatus } from "@/lib/stock-alerts-eval";
 
 export default function ItemsView({ initialItems = [] }: { initialItems?: Item[] }) {
@@ -55,8 +50,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [adjustingItem, setAdjustingItem] = useState<Item | null>(null);
   const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
-  const [wasteItem, setWasteItem] = useState<Item | null>(null);
-  const [isWasteDialogOpen, setIsWasteDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<Item | null>(null);
   const [isHistorySheetOpen, setIsHistorySheetOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,13 +60,11 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
     if (filterParam === "low_stock") return "low_stock";
     if (filterParam === "out_of_stock") return "out_of_stock";
     if (filterParam === "attention" || filterParam === "stock_attention") return "attention";
-    if (filterParam === "expired") return "expired";
-    if (filterParam === "expiring_soon") return "expiring_soon";
     return "all";
   }, [searchParams]);
 
   const [filterStatus, setFilterStatus] = useState<
-    "all" | "attention" | "out_of_stock" | "low_stock" | "expired" | "expiring_soon"
+    "all" | "attention" | "out_of_stock" | "low_stock"
   >(initialFilter);
   const [defaultThreshold, setDefaultThreshold] = useState<number>(5);
   const [isStockSettingsOpen, setIsStockSettingsOpen] = useState(false);
@@ -182,28 +173,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
     setNotification({
       type: "success",
       message: `ปรับปรุงสต็อก "${updatedItem.item_name}" เรียบร้อยแล้ว (คงเหลือ ${updatedItem.item_amount} ชิ้น)`,
-    });
-    setTimeout(() => setNotification(null), 3500);
-  };
-
-  const handleWasteClick = (item: Item) => {
-    setWasteItem(item);
-    setIsWasteDialogOpen(true);
-  };
-
-  const handleWasteSuccess = (result: { waste: import("@/types/waste").WasteRecord; remainingStock: number }) => {
-    if (wasteItem) {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.item_id === wasteItem.item_id
-            ? { ...i, item_amount: result.remainingStock }
-            : i
-        )
-      );
-    }
-    setNotification({
-      type: "success",
-      message: `ตัดของเสีย "${wasteItem?.item_name || ""}" จำนวน ${result.waste.quantity} ชิ้น เรียบร้อยแล้ว (คงเหลือ ${result.remainingStock} ชิ้น)`,
     });
     setTimeout(() => setNotification(null), 3500);
   };
@@ -339,16 +308,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
     }
   };
 
-  const expiredCount = useMemo(() => {
-    return items.filter((item) => getExpiryStatus(item.expiry_date).status === "expired").length;
-  }, [items]);
-
-  const expiringSoonCount = useMemo(() => {
-    return items.filter((item) => getExpiryStatus(item.expiry_date).status === "expiring_soon").length;
-  }, [items]);
-
-  const expiryAttentionCount = expiredCount + expiringSoonCount;
-
   const { outOfStockCount, lowStockCount, stockAttentionCount } = useMemo(() => {
     let outOfStock = 0;
     let lowStock = 0;
@@ -372,7 +331,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
     return items.filter((item) => {
       const effective = getEffectiveThreshold(item.low_stock_threshold, defaultThreshold);
       const alert = evaluateStockStatus(item.item_amount, effective, !!item.low_stock_threshold);
-      const expiry = getExpiryStatus(item.expiry_date);
 
       if (filterStatus === "all") return true;
       if (filterStatus === "attention") {
@@ -380,8 +338,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
       }
       if (filterStatus === "out_of_stock") return alert.status === "out_of_stock";
       if (filterStatus === "low_stock") return alert.status === "low_stock";
-      if (filterStatus === "expired") return expiry.status === "expired";
-      if (filterStatus === "expiring_soon") return expiry.status === "expiring_soon";
       return true;
     });
   }, [items, filterStatus, defaultThreshold]);
@@ -428,15 +384,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
               <span>ประวัติการปรับสต็อก</span>
             </Button>
           </Link>
-          <Link href="/items/waste">
-            <Button
-              variant="outline"
-              className="gap-1.5 cursor-pointer text-rose-700 border-rose-200 hover:bg-rose-50"
-            >
-              <Trash2 className="h-4 w-4 text-rose-600" />
-              <span>บันทึกของเสีย</span>
-            </Button>
-          </Link>
           <Button
             onClick={handleOpenDialog}
             className="gap-1.5 cursor-pointer"
@@ -458,41 +405,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
         isFiltered={filterStatus === "attention"}
       />
 
-      {/* Alert Summary Banner for Expired / Expiring Soon items */}
-      {expiryAttentionCount > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-rose-50/70 border border-rose-200 text-rose-900">
-          <div className="flex items-start sm:items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5 sm:mt-0" />
-            <div>
-              <p className="font-semibold text-sm">การแจ้งเตือนวันหมดอายุสินค้า</p>
-              <p className="text-xs text-rose-700">
-                {expiredCount > 0 && (
-                  <span className="text-rose-700 font-medium">
-                    หมดอายุ {expiredCount} รายการ
-                  </span>
-                )}
-                {expiredCount > 0 && expiringSoonCount > 0 && " • "}
-                {expiringSoonCount > 0 && (
-                  <span>ใกล้หมดอายุ (ภายใน 7 วัน) {expiringSoonCount} รายการ</span>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs border-rose-300 text-rose-900 hover:bg-rose-100 cursor-pointer"
-              onClick={() =>
-                setFilterStatus(filterStatus === "expired" ? "all" : "expired")
-              }
-            >
-              {filterStatus === "expired" ? "แสดงทั้งหมด" : "ดูสินค้าหมดอายุ"}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Filter Badges / Buttons */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -502,20 +414,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
           className="h-8 text-xs cursor-pointer"
         >
           ทั้งหมด ({items.length})
-        </Button>
-        <Button
-          variant={filterStatus === "attention" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilterStatus("attention")}
-          className={`h-8 text-xs cursor-pointer ${
-            filterStatus === "attention"
-              ? "bg-amber-600 hover:bg-amber-700 text-white"
-              : stockAttentionCount > 0
-              ? "text-amber-800 border-amber-300 hover:bg-amber-50"
-              : ""
-          }`}
-        >
-          สต็อกวิกฤต ({stockAttentionCount})
         </Button>
         {outOfStockCount > 0 && (
           <Button
@@ -543,34 +441,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
             }`}
           >
             สต็อกใกล้หมด ({lowStockCount})
-          </Button>
-        )}
-        {expiredCount > 0 && (
-          <Button
-            variant={filterStatus === "expired" ? "destructive" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus("expired")}
-            className={`h-8 text-xs cursor-pointer ${
-              filterStatus === "expired"
-                ? ""
-                : "text-rose-700 border-rose-200 hover:bg-rose-50"
-            }`}
-          >
-            หมดอายุ ({expiredCount})
-          </Button>
-        )}
-        {expiringSoonCount > 0 && (
-          <Button
-            variant={filterStatus === "expiring_soon" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus("expiring_soon")}
-            className={`h-8 text-xs cursor-pointer ${
-              filterStatus === "expiring_soon"
-                ? "bg-orange-600 hover:bg-orange-700 text-white"
-                : "text-orange-800 border-orange-200 hover:bg-orange-50"
-            }`}
-          >
-            ใกล้หมดอายุ ({expiringSoonCount})
           </Button>
         )}
       </div>
@@ -611,7 +481,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
                 <TableHead className="text-right w-[130px]">
                   จำนวนคงเหลือ
                 </TableHead>
-                <TableHead className="w-[170px]">วันหมดอายุ</TableHead>
                 <TableHead className="text-center w-[180px]">จัดการ</TableHead>
               </TableRow>
             </TableHeader>
@@ -619,7 +488,7 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={7}
                     className="py-12 text-center text-muted-foreground"
                   >
                     กำลังโหลดข้อมูลสินค้า...
@@ -628,7 +497,7 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
               ) : filteredItems.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={7}
                     className="py-12 text-center text-muted-foreground"
                   >
                     {filterStatus !== "all"
@@ -673,50 +542,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
                         showThresholdHint={true}
                       />
                     </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const { status, diffDays } = getExpiryStatus(item.expiry_date);
-                        if (status === "expired") {
-                          return (
-                            <div className="flex flex-col gap-0.5 items-start">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">
-                                <AlertTriangle className="h-3 w-3" />
-                                หมดอายุ
-                              </span>
-                              <span className="text-[11px] text-rose-600 font-mono">
-                                {formatExpiryDate(item.expiry_date)}
-                              </span>
-                            </div>
-                          );
-                        }
-                        if (status === "expiring_soon") {
-                          return (
-                            <div className="flex flex-col gap-0.5 items-start">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                                <Clock className="h-3 w-3" />
-                                ใกล้หมดอายุ
-                              </span>
-                              <span className="text-[11px] text-amber-700 font-mono">
-                                {formatExpiryDate(item.expiry_date)}
-                                {diffDays !== undefined && (
-                                  <span className="text-muted-foreground ml-1">
-                                    ({diffDays === 0 ? "วันนี้" : `อีก ${diffDays} วัน`})
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-                          );
-                        }
-                        if (status === "valid") {
-                          return (
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {formatExpiryDate(item.expiry_date)}
-                            </span>
-                          );
-                        }
-                        return <span className="text-muted-foreground text-xs">-</span>;
-                      })()}
-                    </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Button
@@ -727,15 +552,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
                           title="ปรับสต็อก"
                         >
                           <SlidersHorizontal className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleWasteClick(item)}
-                          className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
-                          title="ตัดของเสีย"
-                        >
-                          <PackageX className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -875,20 +691,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="expiry_date" className="text-xs font-semibold">
-                  วันหมดอายุ (Expiry Date)
-                </Label>
-                <Input
-                  id="expiry_date"
-                  type="date"
-                  value={formData.expiry_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, expiry_date: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
                 <Label htmlFor="low_stock_threshold" className="text-xs font-semibold">
                   เกณฑ์แจ้งเตือนสต็อกต่ำเฉพาะสินค้า (ชิ้น)
                 </Label>
@@ -947,14 +749,6 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
         open={isAdjustDialogOpen}
         onOpenChange={setIsAdjustDialogOpen}
         onSuccess={handleAdjustSuccess}
-      />
-
-      {/* Waste Log Dialog */}
-      <WasteLogDialog
-        item={wasteItem}
-        open={isWasteDialogOpen}
-        onOpenChange={setIsWasteDialogOpen}
-        onSuccess={handleWasteSuccess}
       />
 
       {/* Item Stock History Sheet */}

@@ -1,40 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getItemWasteHistory } from "@/lib/waste";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const itemId = parseInt(id, 10);
+const response = () =>
+  NextResponse.json({ error: "Waste tracking is disabled" }, { status: 403 });
 
-    if (isNaN(itemId) || itemId <= 0) {
-      return NextResponse.json(
-        { success: false, error: "รหัสสินค้าไม่ถูกต้อง" },
-        { status: 400 }
-      );
-    }
+export async function GET() {
+  return response();
+}
 
-    const { searchParams } = new URL(req.url);
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
+export async function POST() {
+  return response();
+}
 
-    const records = getItemWasteHistory(itemId, limit);
+export async function PUT() {
+  return response();
+}
 
-    return NextResponse.json({
-      success: true,
-      records,
-    });
-  } catch (err) {
-    console.error("Failed to fetch item waste history:", err);
-    return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : "Internal error",
-      },
-      { status: 500 }
-    );
-  }
+export async function DELETE() {
+  return response();
+}
+
+export async function PATCH() {
+  return response();
 }

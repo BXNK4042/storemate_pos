@@ -32,8 +32,7 @@ import type {
   StockAdjustmentReason,
   StockAdjustmentListResult,
 } from "@/types/stock";
-import { StockReasonBadge, STOCK_REASON_CONFIG } from "@/components/inventory/stock-reason-badge";
-import { StockKpiSummary } from "@/components/inventory/stock-kpi-summary";
+import { StockReasonBadge, STOCK_REASON_CONFIG, getStockReasonLabel } from "@/components/inventory/stock-reason-badge";
 
 type DatePreset = "all" | "today" | "7days" | "30days" | "custom";
 
@@ -167,7 +166,7 @@ export default function AdjustmentsView() {
       r.change_qty,
       r.previous_qty,
       r.new_qty,
-      `"${STOCK_REASON_CONFIG[r.reason]?.label || r.reason}"`,
+      `"${getStockReasonLabel(r.reason)}"`,
       `"${(r.reference_id || "").replace(/"/g, '""')}"`,
       `"${(r.note || "").replace(/"/g, '""')}"`,
       `"${r.user_name || ""}"`,
@@ -229,7 +228,7 @@ export default function AdjustmentsView() {
             variant="outline"
             size="sm"
             onClick={handleExportCsv}
-            className="gap-1.5 h-9 text-xs cursor-pointer border-gray-300"
+            className="gap-1.5 h-9 text-xs cursor-pointer"
             disabled={data.adjustments.length === 0}
           >
             <Download className="h-4 w-4 text-emerald-600" />
@@ -238,11 +237,8 @@ export default function AdjustmentsView() {
         </div>
       </div>
 
-      {/* KPI Metric Summary Cards */}
-      <StockKpiSummary metrics={data.metrics} />
-
       {/* Filter and Search Toolbar */}
-      <Card className="border shadow-xs">
+      <Card className="p-0 gap-0">
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-col lg:flex-row lg:items-center gap-3">
             {/* Search Input */}
@@ -264,14 +260,12 @@ export default function AdjustmentsView() {
                   setReason(e.target.value as StockAdjustmentReason | "all");
                   setPage(1);
                 }}
-                className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
               >
                 <option value="all">เหตุผลทั้งหมด (All Reasons)</option>
-                {Object.entries(STOCK_REASON_CONFIG).map(([key, cfg]) => (
-                  <option key={key} value={key}>
-                    {cfg.label}
-                  </option>
-                ))}
+                <option value="restock">รับเข้าสินค้า</option>
+                <option value="damage">สินค้าเสียหาย / ตัดสต็อก</option>
+                <option value="inventory_count">ตรวจนับ / ปรับยอด</option>
               </select>
             </div>
 
@@ -290,7 +284,7 @@ export default function AdjustmentsView() {
           </div>
 
           {/* Date range filter buttons and picker */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t text-xs">
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border text-xs">
             <div className="flex items-center gap-1.5 text-muted-foreground font-medium mr-2">
               <Calendar className="h-3.5 w-3.5" />
               <span>ช่วงเวลา:</span>
@@ -300,7 +294,7 @@ export default function AdjustmentsView() {
               variant={datePreset === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => applyDatePreset("all")}
-              className="h-7 text-xs cursor-pointer"
+              className="h-8 text-xs cursor-pointer"
             >
               ทั้งหมด
             </Button>
@@ -308,7 +302,7 @@ export default function AdjustmentsView() {
               variant={datePreset === "today" ? "default" : "outline"}
               size="sm"
               onClick={() => applyDatePreset("today")}
-              className="h-7 text-xs cursor-pointer"
+              className="h-8 text-xs cursor-pointer"
             >
               วันนี้
             </Button>
@@ -316,7 +310,7 @@ export default function AdjustmentsView() {
               variant={datePreset === "7days" ? "default" : "outline"}
               size="sm"
               onClick={() => applyDatePreset("7days")}
-              className="h-7 text-xs cursor-pointer"
+              className="h-8 text-xs cursor-pointer"
             >
               7 วันล่าสุด
             </Button>
@@ -324,7 +318,7 @@ export default function AdjustmentsView() {
               variant={datePreset === "30days" ? "default" : "outline"}
               size="sm"
               onClick={() => applyDatePreset("30days")}
-              className="h-7 text-xs cursor-pointer"
+              className="h-8 text-xs cursor-pointer"
             >
               30 วันล่าสุด
             </Button>
@@ -339,7 +333,7 @@ export default function AdjustmentsView() {
                   setStartDate(e.target.value);
                   setPage(1);
                 }}
-                className="h-7 text-xs w-32"
+                className="h-8 text-xs w-32"
               />
               <span className="text-muted-foreground text-xs">-</span>
               <Input
@@ -350,7 +344,7 @@ export default function AdjustmentsView() {
                   setEndDate(e.target.value);
                   setPage(1);
                 }}
-                className="h-7 text-xs w-32"
+                className="h-8 text-xs w-32"
               />
             </div>
           </div>
@@ -358,7 +352,7 @@ export default function AdjustmentsView() {
       </Card>
 
       {/* Ledger Table */}
-      <Card className="overflow-hidden p-0 gap-0 border shadow-xs">
+      <Card className="overflow-hidden p-0 gap-0">
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/50">
@@ -395,7 +389,7 @@ export default function AdjustmentsView() {
                   const isZero = record.change_qty === 0;
 
                   return (
-                    <TableRow key={record.adjustment_id} className="hover:bg-muted/20">
+                    <TableRow key={record.adjustment_id} className="hover:bg-muted/40">
                       {/* Date & Time */}
                       <TableCell className="text-xs text-muted-foreground font-mono">
                         {formatDateTime(record.created_at)}
@@ -423,12 +417,12 @@ export default function AdjustmentsView() {
                       {/* Quantity Delta */}
                       <TableCell className="text-right">
                         <span
-                          className={`inline-block font-mono font-bold text-xs px-2 py-0.5 rounded-md ${
+                          className={`inline-flex items-center font-mono font-bold text-xs px-2.5 py-0.5 rounded-full border ${
                             isPositive
-                              ? "bg-emerald-100 text-emerald-800"
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                               : isZero
-                              ? "bg-gray-100 text-gray-800"
-                              : "bg-rose-100 text-rose-800"
+                              ? "bg-muted text-muted-foreground border-border"
+                              : "bg-rose-50 text-rose-800 border-rose-200"
                           }`}
                         >
                           {isPositive ? `+${record.change_qty}` : record.change_qty}
@@ -437,7 +431,7 @@ export default function AdjustmentsView() {
 
                       {/* Previous -> New */}
                       <TableCell className="text-center">
-                        <div className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-md">
+                        <div className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground bg-muted/60 border border-border/60 px-2.5 py-0.5 rounded-md">
                           <span>{record.previous_qty}</span>
                           <ArrowRight className="h-3 w-3 text-muted-foreground" />
                           <span className="font-bold text-foreground">{record.new_qty}</span>
@@ -448,7 +442,7 @@ export default function AdjustmentsView() {
                       <TableCell>
                         <div className="space-y-1">
                           {record.reference_id && (
-                            <div className="inline-flex items-center gap-1 font-mono text-[11px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                            <div className="inline-flex items-center gap-1 font-mono text-[11px] bg-muted text-foreground border border-border px-1.5 py-0.5 rounded">
                               <Hash className="h-2.5 w-2.5" />
                               <span>{record.reference_id}</span>
                             </div>
@@ -470,7 +464,7 @@ export default function AdjustmentsView() {
                       {/* Operator Username */}
                       <TableCell>
                         {record.user_name ? (
-                          <div className="inline-flex items-center gap-1 text-xs text-gray-700 font-medium">
+                          <div className="inline-flex items-center gap-1 text-xs text-foreground font-medium">
                             <User className="h-3 w-3 text-muted-foreground" />
                             <span>{record.user_name}</span>
                           </div>
@@ -486,7 +480,7 @@ export default function AdjustmentsView() {
           </Table>
 
           {/* Pagination bar */}
-          <div className="p-4 border-t bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="p-4 border-t border-border bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-3">
               <span>
                 แสดง {data.adjustments.length} จากทั้งหมด{" "}
@@ -501,7 +495,7 @@ export default function AdjustmentsView() {
                     setLimit(Number(e.target.value));
                     setPage(1);
                   }}
-                  className="h-7 rounded border border-input bg-transparent px-2 text-xs"
+                  className="h-8 rounded-md border border-input bg-background px-2 text-xs cursor-pointer"
                 >
                   <option value={20}>20</option>
                   <option value={50}>50</option>

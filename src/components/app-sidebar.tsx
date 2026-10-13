@@ -28,7 +28,6 @@ import {
   ShieldCheck,
   QrCode,
   ClipboardList,
-  Trash2,
 } from "lucide-react";
 import { PaymentSettingsDialog } from "@/components/settings/payment-settings-dialog";
 
@@ -122,12 +121,6 @@ export function AppSidebar() {
       url: "/items/adjustments",
       icon: ClipboardList,
       roles: ["admin"],
-    },
-    {
-      title: "บันทึกของเสีย",
-      url: "/items/waste",
-      icon: Trash2,
-      roles: ["admin", "cashier"],
     },
   ];
 

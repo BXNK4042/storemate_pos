@@ -12,11 +12,11 @@ interface TotalSaleCardProps {
 
 export default function TotalSaleCard({ amount = 0, loading = false }: TotalSaleCardProps) {
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
+    <Card className="w-full py-3.5 gap-2">
+      <CardHeader className="p-0 px-4">
         <CardTitle className="text-sm font-medium text-muted-foreground">ยอดขายรวม</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0 px-4">
         {loading ? (
           <div className="h-9 w-28 bg-muted animate-pulse rounded-md mt-1" />
         ) : (

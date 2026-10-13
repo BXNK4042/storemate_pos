@@ -33,9 +33,9 @@ interface StockAdjustDialogProps {
 }
 
 const REASONS_BY_MODE: Record<StockAdjustmentMode, StockAdjustmentReason[]> = {
-  add: ["restock", "other"],
-  remove: ["damage", "expired", "loss", "other"],
-  set: ["inventory_count", "correction", "other"],
+  add: ["restock"],
+  remove: ["damage"],
+  set: ["inventory_count"],
 };
 
 interface StockAdjustFormProps {
