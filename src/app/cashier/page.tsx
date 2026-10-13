@@ -43,6 +43,7 @@ interface CartItem {
 export default function CashierPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [defaultThreshold, setDefaultThreshold] = useState<number>(5);
   const [notification, setNotification] = useState<{
@@ -120,6 +121,80 @@ export default function CashierPage() {
       cancelled = true;
     };
   }, []);
+
+  // Restore cart and discounts from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem('storemate_cashier_cart');
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCart(parsed);
+        }
+      }
+      const savedDiscountType = localStorage.getItem('storemate_order_discount_type');
+      if (savedDiscountType === 'percentage' || savedDiscountType === 'fixed' || savedDiscountType === 'none') {
+        setOrderDiscountType(savedDiscountType);
+      }
+      const savedDiscountValue = localStorage.getItem('storemate_order_discount_value');
+      if (savedDiscountValue) {
+        const val = parseFloat(savedDiscountValue);
+        if (!isNaN(val)) setOrderDiscountValue(val);
+      }
+    } catch (err) {
+      console.error('Failed to load cart from localStorage:', err);
+    } finally {
+      setIsHydrated(true);
+    }
+  }, []);
+
+  // Save cart to localStorage
+  useEffect(() => {
+    if (!isHydrated) return;
+    try {
+      if (cart.length > 0) {
+        localStorage.setItem('storemate_cashier_cart', JSON.stringify(cart));
+      } else {
+        localStorage.removeItem('storemate_cashier_cart');
+      }
+    } catch (err) {
+      console.error('Failed to save cart to localStorage:', err);
+    }
+  }, [cart, isHydrated]);
+
+  // Save order discount to localStorage
+  useEffect(() => {
+    if (!isHydrated) return;
+    try {
+      localStorage.setItem('storemate_order_discount_type', orderDiscountType);
+      localStorage.setItem('storemate_order_discount_value', String(orderDiscountValue));
+    } catch (err) {
+      console.error('Failed to save discount to localStorage:', err);
+    }
+  }, [orderDiscountType, orderDiscountValue, isHydrated]);
+
+  // Synchronize item details when fresh items are loaded
+  useEffect(() => {
+    if (items.length === 0 || cart.length === 0) return;
+    setCart((prevCart) => {
+      let changed = false;
+      const updated = prevCart.map((ci) => {
+        const found = items.find((it) => it.item_id === ci.item.item_id);
+        if (!found) return ci;
+        if (
+          found.item_price !== ci.item.item_price ||
+          found.item_amount !== ci.item.item_amount ||
+          found.item_name !== ci.item.item_name ||
+          found.expiry_date !== ci.item.expiry_date
+        ) {
+          changed = true;
+          return { ...ci, item: found };
+        }
+        return ci;
+      });
+      return changed ? updated : prevCart;
+    });
+  }, [items]);
 
   // Cart operations with stock validation and expiry check
   const addToCart = useCallback((item: Item, force = false) => {
@@ -318,6 +393,7 @@ export default function CashierPage() {
 
   // Synchronize cashier cart to active_cart in backend so scanner display always reflects latest summary
   useEffect(() => {
+    if (!isHydrated) return;
     const payload = cart.map((ci) => ({
       item_id: ci.item.item_id,
       quantity: ci.quantity,
@@ -327,7 +403,7 @@ export default function CashierPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cart: payload }),
     }).catch(console.error);
-  }, [cart]);
+  }, [cart, isHydrated]);
 
   // Filter items by search query
   const filteredItems = useMemo(() => {
