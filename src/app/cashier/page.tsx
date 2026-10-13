@@ -269,7 +269,7 @@ export default function CashierPage() {
   // Poll barcode scanner and auto-add item
   const checkBarcodeScanner = useCallback(async () => {
     try {
-      const res = await fetch('/api/data');
+      const res = await fetch('/api/data', { cache: 'no-store' });
       if (!res.ok) return;
       const json = await res.json();
       const scannedCode = (json.text || '').trim();
@@ -302,8 +302,6 @@ export default function CashierPage() {
         });
       }
 
-      await fetch('/api/data', { method: 'DELETE' });
-
       setTimeout(() => {
         setNotification(null);
       }, 3500);
@@ -314,7 +312,7 @@ export default function CashierPage() {
 
   useEffect(() => {
     if (items.length === 0) return;
-    const interval = setInterval(checkBarcodeScanner, 1200);
+    const interval = setInterval(checkBarcodeScanner, 500);
     return () => clearInterval(interval);
   }, [items, checkBarcodeScanner]);
 

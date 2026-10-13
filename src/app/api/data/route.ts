@@ -1,6 +1,12 @@
-import { getActiveBarcode, setActiveBarcode, clearActiveBarcode } from "@/lib/barcode";
+import { getActiveBarcode, enqueueBarcode, popActiveBarcode, clearActiveBarcode } from "@/lib/barcode";
 import { getDb } from "@/lib/db";
 import { verifySessionToken } from "@/lib/token";
+
+export const dynamic = "force-dynamic";
+
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate",
+};
 
 async function isAuthorized(req?: Request): Promise<boolean> {
   if (!req) return false;
@@ -36,23 +42,26 @@ async function isAuthorized(req?: Request): Promise<boolean> {
 
 export async function POST(req: Request) {
   if (!(await isAuthorized(req))) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: NO_CACHE_HEADERS });
   }
 
   try {
     const body = await req.json();
-    if (typeof body.text !== "string") {
-      return Response.json({ success: false, error: "Invalid text" }, { status: 400 });
+    const barcode = typeof body?.text === "string" ? body.text.trim() : "";
+    if (!barcode) {
+      return Response.json({ success: false, error: "Invalid text" }, { status: 400, headers: NO_CACHE_HEADERS });
     }
 
     const db = getDb();
     const item = db
       .prepare("SELECT item_id, item_name, item_price, item_barcode FROM items WHERE item_barcode = ?")
-      .get(body.text) as { item_id: number; item_name: string; item_price: number; item_barcode: string } | undefined;
+      .get(barcode) as { item_id: number; item_name: string; item_price: number; item_barcode: string } | undefined;
 
     if (!item) {
-      return Response.json({ success: false, error: "Item not found" }, { status: 404 });
+      return Response.json({ success: false, error: "Item not found" }, { status: 404, headers: NO_CACHE_HEADERS });
     }
+
+    enqueueBarcode(barcode);
 
     db.prepare(
       "INSERT INTO active_cart (item_id, quantity) VALUES (?, 1) ON CONFLICT(item_id) DO UPDATE SET quantity = quantity + 1"
@@ -70,8 +79,6 @@ export async function POST(req: Request) {
       )
       .all() as { item_id: number; name: string; price: number; quantity: number; subtotal: number }[];
 
-    setActiveBarcode(body.text);
-
     return Response.json({
       success: true,
       name: item.item_name,
@@ -82,21 +89,24 @@ export async function POST(req: Request) {
       total_quantity: Number(summaryRow.total_items || 0),
       item_count: Number(summaryRow.item_count || 0),
       items: cartItems,
-    });
+    }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
     return Response.json(
       { success: false, error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     );
   }
 }
 
 export async function GET(req: Request) {
   if (!(await isAuthorized(req))) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: NO_CACHE_HEADERS });
   }
 
-  const barcode = getActiveBarcode();
+  const url = new URL(req.url);
+  const peek = url.searchParams.get("peek") === "true";
+  const barcode = peek ? getActiveBarcode() : popActiveBarcode();
+
   const db = getDb();
   const summaryRow = db
     .prepare(
@@ -117,12 +127,12 @@ export async function GET(req: Request) {
     total_quantity: Number(summaryRow.total_items || 0),
     item_count: Number(summaryRow.item_count || 0),
     items: cartItems,
-  });
+  }, { headers: NO_CACHE_HEADERS });
 }
 
 export async function PUT(req: Request) {
   if (!(await isAuthorized(req))) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: NO_CACHE_HEADERS });
   }
 
   try {
@@ -168,18 +178,18 @@ export async function PUT(req: Request) {
       total_quantity: Number(summaryRow.total_items || 0),
       item_count: Number(summaryRow.item_count || 0),
       items: cartItems,
-    });
+    }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
     return Response.json(
       { success: false, error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     );
   }
 }
 
 export async function DELETE(req: Request) {
   if (!(await isAuthorized(req))) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: NO_CACHE_HEADERS });
   }
 
   try {
@@ -190,11 +200,11 @@ export async function DELETE(req: Request) {
       db.prepare("DELETE FROM active_cart").run();
     }
     clearActiveBarcode();
-    return Response.json({ success: true, text: "" });
+    return Response.json({ success: true, text: "" }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
     return Response.json(
       { success: false, error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 }
+      { status: 500, headers: NO_CACHE_HEADERS }
     );
   }
 }

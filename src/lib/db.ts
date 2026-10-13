@@ -9,13 +9,13 @@ declare global {
 
 export function getDb(): Database.Database {
   if (process.env.NODE_ENV === "production") {
-    const db = new Database(dbPath);
+    const db = new Database(dbPath, { timeout: 5000 });
     initTables(db);
     return db;
   }
 
   if (!global.__db) {
-    global.__db = new Database(dbPath);
+    global.__db = new Database(dbPath, { timeout: 5000 });
     initTables(global.__db);
   }
 
@@ -23,12 +23,28 @@ export function getDb(): Database.Database {
 }
 
 function initTables(db: Database.Database) {
+  try {
+    db.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA busy_timeout = 5000;
+    `);
+  } catch {}
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS active_barcode (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       barcode TEXT NOT NULL,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS barcode_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      barcode TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_barcode_queue_status ON barcode_queue(status, id ASC);
 
     CREATE TABLE IF NOT EXISTS active_cart (
       item_id INTEGER PRIMARY KEY,
