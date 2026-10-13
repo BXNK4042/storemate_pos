@@ -76,7 +76,7 @@ export function StockAlertBanner({
             onClick={onFilterClick}
             className="h-8 text-xs gap-1.5 bg-amber-700 hover:bg-amber-800 text-white cursor-pointer shadow-xs"
           >
-            <span>{isFiltered ? "แสดงสินค้าทั้งหมด" : "ดูสินค้าสต็อกวิกฤต"}</span>
+            <span>{isFiltered ? "แสดงสินค้าทั้งหมด" : "ดูสินค้าสต็อกใกล้หมด"}</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         )}
