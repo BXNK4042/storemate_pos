@@ -1,12 +1,6 @@
 import getDb from "./db";
 import type Database from "better-sqlite3";
 
-import getDb from "./db";
-import type Database from "better-sqlite3";
-
-import getDb from "./db";
-import type Database from "better-sqlite3";
-
 export function enqueueBarcode(barcode: string, db?: Database.Database): number {
   const trimmed = typeof barcode === "string" ? barcode.trim() : "";
   if (!trimmed) {
