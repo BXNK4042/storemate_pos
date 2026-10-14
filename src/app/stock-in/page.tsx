@@ -13,13 +13,11 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   PackagePlus,
   Plus,
   Minus,
   Trash2,
-  ScanLine,
   ArrowRight,
   CheckCircle2,
   AlertCircle,
@@ -44,7 +42,6 @@ interface StockCartItem {
 export default function StockInPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [stockCart, setStockCart] = useState<StockCartItem[]>([]);
-  const [barcodeInput, setBarcodeInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'warning';
@@ -139,49 +136,6 @@ export default function StockInPage() {
     () => stockCart.reduce((sum, ci) => sum + (ci.price || 0) * ci.quantity, 0),
     [stockCart]
   );
-
-  // Manual barcode scanning / adding
-  const handleManualAdd = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const code = barcodeInput.trim();
-    if (!code) return;
-
-    try {
-      const res = await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'scan',
-          mode: 'stock',
-          barcode: code,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setBarcodeInput('');
-        setNotification({
-          type: 'success',
-          message: `เพิ่ม "${data.name}" (+1) ลงในรายการรับเข้าแล้ว`,
-        });
-        if (Array.isArray(data.items)) {
-          setStockCart(data.items);
-        }
-      } else {
-        setNotification({
-          type: 'error',
-          message: data.error || `ไม่พบสินค้าบาร์โค้ด: ${code}`,
-        });
-      }
-    } catch {
-      setNotification({
-        type: 'error',
-        message: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้',
-      });
-    }
-
-    setTimeout(() => setNotification(null), 3500);
-  };
 
   // Adjust item quantity in stock mode
   const handleUpdateQty = async (barcode: string, delta: number) => {
@@ -378,33 +332,6 @@ export default function StockInPage() {
         </div>
       )}
 
-      {/* Barcode Scan Bar */}
-      <Card className="border border-border/80 shadow-xs">
-        <CardContent className="p-4">
-          <form onSubmit={handleManualAdd} className="flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative flex-1 w-full">
-              <ScanLine className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="สแกนบาร์โค้ด หรือพิมพ์รหัสบาร์โค้ดแล้วกดเพิ่ม..."
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                className="pl-10 pr-4 h-10 text-sm bg-background font-mono"
-                autoFocus
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={!barcodeInput.trim()}
-              className="w-full sm:w-auto h-10 px-4 cursor-pointer shrink-0 gap-1.5"
-            >
-              <Plus className="h-4 w-4" />
-              เพิ่มเข้ารายการ
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
       {/* Staged Intake Table */}
       <Card className="overflow-hidden p-0 gap-0">
         <CardContent className="p-0">
@@ -433,7 +360,7 @@ export default function StockInPage() {
                       ยังไม่มีรายการรับเข้าสต็อก
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                      สแกนบาร์โค้ดด้วยเครื่องสแกนเนอร์หรือพิมพ์รหัสบาร์โค้ดด้านบนเพื่อเตรียมสต็อกเข้าสู่ระบบ
+                      สแกนบาร์โค้ดด้วยเครื่องสแกนเนอร์เพื่อเตรียมสต็อกเข้าสู่ระบบ
                     </p>
                   </TableCell>
                 </TableRow>
