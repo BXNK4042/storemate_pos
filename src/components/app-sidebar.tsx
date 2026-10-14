@@ -118,7 +118,7 @@ export function AppSidebar() {
       roles: ["admin"],
     },
     {
-      title: "รับเข้าสต็อก (Stock In)",
+      title: "รับเข้าสต็อก",
       url: "/stock-in",
       icon: PackagePlus,
       roles: ["admin"],
