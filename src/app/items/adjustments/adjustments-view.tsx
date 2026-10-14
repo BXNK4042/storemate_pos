@@ -33,6 +33,7 @@ import type {
   StockAdjustmentListResult,
 } from "@/types/stock";
 import { StockReasonBadge, STOCK_REASON_CONFIG, getStockReasonLabel } from "@/components/inventory/stock-reason-badge";
+import { parseDbDate, formatThaiDateTime, getLocalDateString } from "@/lib/date-utils";
 
 type DatePreset = "all" | "today" | "7days" | "30days" | "custom";
 
@@ -70,25 +71,24 @@ export default function AdjustmentsView() {
     setPage(1);
 
     const now = new Date();
-    const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
     if (preset === "all") {
       setStartDate("");
       setEndDate("");
     } else if (preset === "today") {
-      const todayStr = formatDate(now);
+      const todayStr = getLocalDateString(now);
       setStartDate(todayStr);
       setEndDate(todayStr);
     } else if (preset === "7days") {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(now.getDate() - 7);
-      setStartDate(formatDate(sevenDaysAgo));
-      setEndDate(formatDate(now));
+      setStartDate(getLocalDateString(sevenDaysAgo));
+      setEndDate(getLocalDateString(now));
     } else if (preset === "30days") {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(now.getDate() - 30);
-      setStartDate(formatDate(thirtyDaysAgo));
-      setEndDate(formatDate(now));
+      setStartDate(getLocalDateString(thirtyDaysAgo));
+      setEndDate(getLocalDateString(now));
     }
   };
 
@@ -185,7 +185,7 @@ export default function AdjustmentsView() {
 
   const formatDateTime = (dateStr: string) => {
     try {
-      const d = new Date(dateStr);
+      const d = parseDbDate(dateStr);
       return d.toLocaleDateString("th-TH", {
         year: "numeric",
         month: "short",
@@ -357,26 +357,25 @@ export default function AdjustmentsView() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[140px]">วันที่ / เวลา</TableHead>
-                <TableHead>สินค้า</TableHead>
-                <TableHead className="w-[180px]">ประเภท / เหตุผล</TableHead>
-                <TableHead className="text-right w-[110px]">จำนวนที่ปรับ</TableHead>
+                <TableHead className="w-[170px] pl-4">วันที่ / เวลา</TableHead>
+                <TableHead className="min-w-[200px]">สินค้า</TableHead>
+                <TableHead className="w-[160px]">ประเภท / เหตุผล</TableHead>
                 <TableHead className="text-center w-[160px]">ก่อนหน้า → คงเหลือ</TableHead>
-                <TableHead className="w-[200px]">อ้างอิง / หมายเหตุ</TableHead>
-                <TableHead className="w-[120px]">ผู้ดำเนินการ</TableHead>
+                <TableHead className="w-[220px]">อ้างอิง / หมายเหตุ</TableHead>
+                <TableHead className="w-[130px] pr-4">ผู้ดำเนินการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-16 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="py-16 text-center text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
                     <span>กำลังโหลดสมุดบันทึกสต็อก...</span>
                   </TableCell>
                 </TableRow>
               ) : data.adjustments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-16 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="py-16 text-center text-muted-foreground">
                     <p className="text-sm font-medium">ไม่พบรายการบันทึกตามเงื่อนไขที่เลือก</p>
                     <p className="text-xs text-muted-foreground/80 mt-1">
                       ลองเปลี่ยนคำค้นหา หรือรีเซ็ตตัวกรองช่วงเวลา
@@ -385,13 +384,10 @@ export default function AdjustmentsView() {
                 </TableRow>
               ) : (
                 data.adjustments.map((record: StockAdjustmentRecord) => {
-                  const isPositive = record.change_qty > 0;
-                  const isZero = record.change_qty === 0;
-
                   return (
                     <TableRow key={record.adjustment_id} className="hover:bg-muted/40">
                       {/* Date & Time */}
-                      <TableCell className="text-xs text-muted-foreground font-mono">
+                      <TableCell className="pl-4 text-xs text-muted-foreground font-mono">
                         {formatDateTime(record.created_at)}
                       </TableCell>
 
@@ -412,21 +408,6 @@ export default function AdjustmentsView() {
                       {/* Reason Badge */}
                       <TableCell>
                         <StockReasonBadge reason={record.reason} />
-                      </TableCell>
-
-                      {/* Quantity Delta */}
-                      <TableCell className="text-right">
-                        <span
-                          className={`inline-flex items-center font-mono font-bold text-xs px-2.5 py-0.5 rounded-full border ${
-                            isPositive
-                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                              : isZero
-                              ? "bg-muted text-muted-foreground border-border"
-                              : "bg-rose-50 text-rose-800 border-rose-200"
-                          }`}
-                        >
-                          {isPositive ? `+${record.change_qty}` : record.change_qty}
-                        </span>
                       </TableCell>
 
                       {/* Previous -> New */}
@@ -450,7 +431,7 @@ export default function AdjustmentsView() {
                           {record.note && (
                             <div className="text-xs text-gray-700 flex items-start gap-1">
                               <MessageSquare className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
-                              <span className="truncate max-w-[180px]" title={record.note}>
+                              <span className="truncate max-w-[200px]" title={record.note}>
                                 {record.note}
                               </span>
                             </div>
@@ -462,7 +443,7 @@ export default function AdjustmentsView() {
                       </TableCell>
 
                       {/* Operator Username */}
-                      <TableCell>
+                      <TableCell className="pr-4">
                         {record.user_name ? (
                           <div className="inline-flex items-center gap-1 text-xs text-foreground font-medium">
                             <User className="h-3 w-3 text-muted-foreground" />

@@ -9,6 +9,7 @@ import {
   WasteError,
 } from "./waste";
 import { ensureStockAdjustmentTable } from "./stock";
+import { getLocalDateString } from "./date-utils";
 
 function createTestDb(): Database.Database {
   const db = new Database(":memory:");
@@ -354,7 +355,7 @@ describe("Waste Tracking: Filtering & Aggregation", () => {
   });
 
   it("filters by date range", () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     const res = getWasteRecords({ startDate: today, endDate: today }, db);
     assert.equal(res.records.length, 4);
 

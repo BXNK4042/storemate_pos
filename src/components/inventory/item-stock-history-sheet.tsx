@@ -22,6 +22,7 @@ import {
 import type { Item } from "@/types/item";
 import type { StockAdjustmentRecord } from "@/types/stock";
 import { StockReasonBadge } from "./stock-reason-badge";
+import { parseDbDate } from "@/lib/date-utils";
 
 interface ItemStockHistorySheetProps {
   item: Item | null;
@@ -92,7 +93,7 @@ export function ItemStockHistorySheet({
 
   const formatDate = (dateStr: string) => {
     try {
-      const d = new Date(dateStr);
+      const d = parseDbDate(dateStr);
       return d.toLocaleDateString("th-TH", {
         year: "numeric",
         month: "short",

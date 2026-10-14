@@ -254,12 +254,12 @@ export function getStockAdjustments(
   }
 
   if (params.startDate) {
-    whereConditions.push("DATE(sa.created_at) >= DATE(?)");
+    whereConditions.push("DATE(sa.created_at, 'localtime') >= DATE(?)");
     queryParams.push(params.startDate);
   }
 
   if (params.endDate) {
-    whereConditions.push("DATE(sa.created_at) <= DATE(?)");
+    whereConditions.push("DATE(sa.created_at, 'localtime') <= DATE(?)");
     queryParams.push(params.endDate);
   }
 

@@ -35,6 +35,7 @@ import type {
 import { WasteReasonBadge, WASTE_REASON_CONFIG } from "@/components/inventory/waste-reason-badge";
 import { WasteKpiSummary } from "@/components/inventory/waste-kpi-summary";
 import { WasteLogDialog } from "@/components/inventory/waste-log-dialog";
+import { parseDbDate, formatThaiDateTime, getLocalDateString } from "@/lib/date-utils";
 
 type DatePreset = "all" | "today" | "7days" | "30days" | "custom";
 
@@ -86,25 +87,24 @@ export default function WasteView() {
     setPage(1);
 
     const now = new Date();
-    const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
     if (preset === "all") {
       setStartDate("");
       setEndDate("");
     } else if (preset === "today") {
-      const todayStr = formatDate(now);
+      const todayStr = getLocalDateString(now);
       setStartDate(todayStr);
       setEndDate(todayStr);
     } else if (preset === "7days") {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(now.getDate() - 7);
-      setStartDate(formatDate(sevenDaysAgo));
-      setEndDate(formatDate(now));
+      setStartDate(getLocalDateString(sevenDaysAgo));
+      setEndDate(getLocalDateString(now));
     } else if (preset === "30days") {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(now.getDate() - 30);
-      setStartDate(formatDate(thirtyDaysAgo));
-      setEndDate(formatDate(now));
+      setStartDate(getLocalDateString(thirtyDaysAgo));
+      setEndDate(getLocalDateString(now));
     }
   };
 
@@ -195,7 +195,7 @@ export default function WasteView() {
 
   const formatDateTime = (dateStr: string) => {
     try {
-      const d = new Date(dateStr);
+      const d = parseDbDate(dateStr);
       return d.toLocaleDateString("th-TH", {
         year: "numeric",
         month: "short",

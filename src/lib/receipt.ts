@@ -4,6 +4,8 @@
  * Client-safe and pure: does not require native database modules.
  */
 
+import { parseDbDate } from "./date-utils";
+
 export interface ReceiptItemInput {
   item_id?: number;
   item_name: string;
@@ -139,7 +141,7 @@ export function formatLine(char: string = "-", totalWidth: number = 32): string 
 
 export function formatDateTime(dateInput: string | Date): string {
   try {
-    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    const d = parseDbDate(dateInput);
     if (isNaN(d.getTime())) return String(dateInput);
     return d.toLocaleString("th-TH", {
       year: "numeric",

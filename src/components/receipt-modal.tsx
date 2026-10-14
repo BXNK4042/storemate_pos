@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatTextReceipt, generateEscPosReceipt } from "@/lib/receipt";
+import { formatThaiDateTime } from "@/lib/date-utils";
 
 export interface ReceiptItem {
   item_id: number;
@@ -236,7 +237,7 @@ export function ReceiptModal({ open, onOpenChange, order }: ReceiptModalProps) {
                 <p className="font-bold text-sm text-foreground">ร้านค้า StoreMate</p>
                 <p className="text-muted-foreground">เลขที่: {order.order_name}</p>
                 <p className="text-muted-foreground">
-                  วันที่: {new Date(order.created_at).toLocaleString("th-TH")}
+                  วันที่: {formatThaiDateTime(order.created_at)}
                 </p>
               </div>
 

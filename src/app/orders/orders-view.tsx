@@ -36,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatThaiDateTime } from "@/lib/date-utils";
 
 export interface OrderSummary {
   order_id: number;
@@ -258,7 +259,7 @@ export default function OrdersView({ initialOrders = [] }: { initialOrders?: Ord
               <TableHead className="text-center w-28">สถานะ</TableHead>
               <TableHead className="text-center">จำนวนชิ้น</TableHead>
               <TableHead className="text-right">ยอดรวม (฿)</TableHead>
-              <TableHead className="text-center min-w-[260px]">จัดการ</TableHead>
+              <TableHead className="text-center w-[160px]">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -317,7 +318,7 @@ export default function OrdersView({ initialOrders = [] }: { initialOrders?: Ord
                     <TableCell className="text-sm text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5" />
-                        {new Date(order.created_at).toLocaleString("th-TH")}
+                        {formatThaiDateTime(order.created_at)}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
@@ -358,51 +359,48 @@ export default function OrdersView({ initialOrders = [] }: { initialOrders?: Ord
                           size="sm"
                           onClick={() => handleViewReceipt(order.order_id)}
                           disabled={fetchingDetail}
-                          className="gap-1 h-8 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10"
+                          className="h-8 w-8 p-0 cursor-pointer text-primary hover:text-primary hover:bg-primary/10"
                           title="ดูใบเสร็จ"
                         >
                           <Eye className="h-3.5 w-3.5" />
-                          ใบเสร็จ
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDownloadTxt(order.order_id, order.order_name)}
-                          className="gap-1 h-8 text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-muted"
+                          className="h-8 w-8 p-0 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted"
                           title="ดาวน์โหลด TXT (Raw Text Receipt)"
                         >
                           <FileText className="h-3.5 w-3.5 text-blue-600" />
-                          TXT
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDownloadEscPos(order.order_id, order.order_name)}
-                          className="gap-1 h-8 text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-muted"
+                          className="h-8 w-8 p-0 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted"
                           title="ดาวน์โหลด ESC/POS (.bin)"
                         >
                           <FileDown className="h-3.5 w-3.5 text-amber-600" />
-                          BIN
                         </Button>
                         {isRefunded ? (
                           <Button
                             variant="ghost"
                             size="sm"
                             disabled
-                            className="gap-1 h-8 text-xs font-medium text-muted-foreground opacity-50 cursor-not-allowed"
+                            className="h-8 w-8 p-0 text-muted-foreground opacity-50 cursor-not-allowed"
+                            title="คืนเงินแล้ว"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
-                            คืนเงินแล้ว
                           </Button>
                         ) : (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenRefund(order)}
-                            className="gap-1 h-8 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                            className="h-8 w-8 p-0 cursor-pointer text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                            title="คืนเงิน"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
-                            คืนเงิน
                           </Button>
                         )}
                       </div>

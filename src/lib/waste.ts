@@ -237,12 +237,12 @@ export function getWasteRecords(
   }
 
   if (params.startDate) {
-    whereConditions.push("DATE(w.created_at) >= DATE(?)");
+    whereConditions.push("DATE(w.created_at, 'localtime') >= DATE(?)");
     queryParams.push(params.startDate);
   }
 
   if (params.endDate) {
-    whereConditions.push("DATE(w.created_at) <= DATE(?)");
+    whereConditions.push("DATE(w.created_at, 'localtime') <= DATE(?)");
     queryParams.push(params.endDate);
   }
 
