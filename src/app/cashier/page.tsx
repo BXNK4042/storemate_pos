@@ -41,6 +41,7 @@ interface CartItem {
 }
 
 export default function CashierPage() {
+  const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -143,8 +144,9 @@ export default function CashierPage() {
     };
   }, []);
 
-  // Restore cart and discounts from localStorage on mount
+  // Restore cart and order discount from localStorage on mount
   useEffect(() => {
+    setMounted(true);
     try {
       const savedCart = localStorage.getItem('storemate_cashier_cart');
       if (savedCart) {
@@ -657,6 +659,8 @@ export default function CashierPage() {
       setIsProcessing(false);
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <div className="space-y-6 pb-16">
