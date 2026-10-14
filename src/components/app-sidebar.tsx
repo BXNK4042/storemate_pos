@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   QrCode,
   ClipboardList,
+  PackagePlus,
 } from "lucide-react";
 import { PaymentSettingsDialog } from "@/components/settings/payment-settings-dialog";
 
@@ -114,6 +115,12 @@ export function AppSidebar() {
       title: "คลังสินค้า",
       url: "/items",
       icon: Package,
+      roles: ["admin"],
+    },
+    {
+      title: "รับเข้าสต็อก (Stock In)",
+      url: "/stock-in",
+      icon: PackagePlus,
       roles: ["admin"],
     },
     {

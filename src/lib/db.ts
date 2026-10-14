@@ -47,8 +47,11 @@ function initTables(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_barcode_queue_status ON barcode_queue(status, id ASC);
 
     CREATE TABLE IF NOT EXISTS active_cart (
-      item_id INTEGER PRIMARY KEY,
+      item_id INTEGER NOT NULL,
+      mode TEXT NOT NULL DEFAULT 'sale',
       quantity INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (item_id, mode),
       FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
     );
 
@@ -121,6 +124,45 @@ function initTables(db: Database.Database) {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_items_low_stock ON items(item_amount, low_stock_threshold);`);
   } catch {
     // Index already exists or table doesn't exist yet
+  }
+
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(active_cart)").all() as { name: string; pk: number }[];
+    if (tableInfo.length > 0) {
+      const colNames = new Set(tableInfo.map((c) => c.name));
+      const hasMode = colNames.has("mode");
+      const hasUpdatedAt = colNames.has("updated_at");
+      const pkCols = tableInfo.filter((c) => c.pk > 0);
+      const isCompositePk = pkCols.length === 2 && pkCols.some((c) => c.name === "item_id") && pkCols.some((c) => c.name === "mode");
+
+      if (!hasMode || !hasUpdatedAt || !isCompositePk) {
+        db.exec(`
+          BEGIN TRANSACTION;
+          CREATE TABLE IF NOT EXISTS active_cart_new (
+            item_id INTEGER NOT NULL,
+            mode TEXT NOT NULL DEFAULT 'sale',
+            quantity INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (item_id, mode),
+            FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
+          );
+
+          INSERT OR REPLACE INTO active_cart_new (item_id, mode, quantity, updated_at)
+          SELECT 
+            item_id,
+            ${hasMode ? "COALESCE(mode, 'sale')" : "'sale'"},
+            COALESCE(quantity, 1),
+            ${hasUpdatedAt ? "COALESCE(updated_at, CURRENT_TIMESTAMP)" : "CURRENT_TIMESTAMP"}
+          FROM active_cart;
+
+          DROP TABLE active_cart;
+          ALTER TABLE active_cart_new RENAME TO active_cart;
+          COMMIT;
+        `);
+      }
+    }
+  } catch (e) {
+    // Migration error handled
   }
 
   try {

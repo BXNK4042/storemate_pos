@@ -376,3 +376,104 @@ export function getItemStockHistory(
 
   return db.prepare(listSql).all(itemId, safeLimit) as StockAdjustmentRecord[];
 }
+
+export interface CommitStockIntakeResult {
+  success: boolean;
+  message: string;
+  count: number;
+  totalQuantity: number;
+  items: Array<{
+    item_id: number;
+    name: string;
+    barcode: string;
+    quantity: number;
+    previous_qty: number;
+    new_qty: number;
+  }>;
+}
+
+export function commitStockIntake(
+  dbInstance?: Database.Database,
+  user?: { userId?: number | null; username?: string | null }
+): CommitStockIntakeResult {
+  const db = dbInstance || getDb();
+  ensureStockAdjustmentTable(db);
+
+  const cartRows = db
+    .prepare(
+      `SELECT ac.item_id, ac.quantity, i.item_name AS name, i.item_amount, i.item_barcode AS barcode
+       FROM active_cart ac
+       JOIN items i ON ac.item_id = i.item_id
+       WHERE ac.mode = 'stock'
+       ORDER BY ac.updated_at ASC, ac.item_id ASC`
+    )
+    .all() as Array<{
+      item_id: number;
+      quantity: number;
+      name: string;
+      item_amount: number;
+      barcode: string;
+    }>;
+
+  if (!cartRows || cartRows.length === 0) {
+    throw new StockError("Cart is empty", "EMPTY_STOCK_CART");
+  }
+
+  const committedItems: Array<{
+    item_id: number;
+    name: string;
+    barcode: string;
+    quantity: number;
+    previous_qty: number;
+    new_qty: number;
+  }> = [];
+
+  let totalQuantity = 0;
+
+  db.transaction(() => {
+    const updateStockStmt = db.prepare(
+      "UPDATE items SET item_amount = item_amount + ? WHERE item_id = ?"
+    );
+
+    for (const row of cartRows) {
+      const prevQty = Number(row.item_amount || 0);
+      const changeQty = Number(row.quantity);
+      const newQty = prevQty + changeQty;
+      totalQuantity += changeQty;
+
+      updateStockStmt.run(changeQty, row.item_id);
+
+      recordStockAdjustmentEntry(db, {
+        item_id: row.item_id,
+        change_qty: changeQty,
+        previous_qty: prevQty,
+        new_qty: newQty,
+        reason: "restock",
+        reference_id: "MANUAL-STOCK-IN",
+        note: "Manual Stock Intake",
+        user_id: user?.userId || null,
+        user_name: user?.username || "Manual Stock Intake",
+      });
+
+      committedItems.push({
+        item_id: row.item_id,
+        name: row.name,
+        barcode: row.barcode,
+        quantity: changeQty,
+        previous_qty: prevQty,
+        new_qty: newQty,
+      });
+    }
+
+    db.prepare("DELETE FROM active_cart WHERE mode = 'stock'").run();
+  })();
+
+  return {
+    success: true,
+    message: "Stock intake committed successfully",
+    count: committedItems.length,
+    totalQuantity,
+    items: committedItems,
+  };
+}
+

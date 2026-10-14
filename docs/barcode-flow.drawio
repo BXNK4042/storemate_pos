@@ -1,0 +1,239 @@
+<mxfile host="app.diagrams.net" modified="2026-10-14T14:30:00.000Z" agent="StoreMate" version="21.0.0" type="device">
+  <diagram id="storemate-barcode-flow" name="Barcode Webhook Flow">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Start -->
+        <mxCell id="start" value="เริ่มต้น (Start)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="510" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Receive Request -->
+        <mxCell id="recv" value="รับ Request จาก ESP32&#xa;(action, mode, barcode, quantity)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="130" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_start_recv" edge="1" parent="1" source="start" target="recv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Action -->
+        <mxCell id="dec_action" value="action คืออะไร?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="495" y="230" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_recv_action" edge="1" parent="1" source="recv" target="dec_action" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- BRANCH 1: scan -->
+        <mxCell id="find_item" value="ค้นหาสินค้าจาก Barcode" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="360" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_action_scan" value="scan" edge="1" parent="1" source="dec_action" target="find_item" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="dec_found" value="พบสินค้า?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="450" width="120" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e_find_dec" edge="1" parent="1" source="find_item" target="dec_found" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 404 branch -->
+        <mxCell id="send_404" value="ส่ง 404 Not Found&#xa;+ ตะกร้าเดิมใน session" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="570" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_found_no" value="ไม่พบ" edge="1" parent="1" source="dec_found" target="send_404" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="115" y="485" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="stop_404" value="จบ (End)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="660" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e_404_stop" edge="1" parent="1" source="send_404" target="stop_404" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Found item -> add to cart -->
+        <mxCell id="add_cart" value="เพิ่ม/บวกจำนวนลงตะกร้า&#xa;(ย้ายไว้ท้ายสุด)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="570" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_found_yes" value="พบ" edge="1" parent="1" source="dec_found" target="add_cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="485" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- BRANCH 2: update_qty -->
+        <mxCell id="act_update" value="ปรับบวกจำนวนสินค้า&#xa;(item.quantity += quantity)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="360" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_action_update" value="update_qty" edge="1" parent="1" source="dec_action" target="act_update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- BRANCH 3: delete -->
+        <mxCell id="act_delete" value="ลดจำนวนสินค้า&#xa;(ถ้า &lt;= 0 ให้ลบแถวออก)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="360" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_action_delete" value="delete" edge="1" parent="1" source="dec_action" target="act_delete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Common Cart Calculation for scan, update_qty, delete -->
+        <mxCell id="calc_totals" value="คำนวณยอดรวมตะกร้าใหม่&#xa;(total, total_items, subtotal)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="690" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_add_calc" edge="1" parent="1" source="add_cart" target="calc_totals" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="650" />
+              <mxPoint x="430" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_update_calc" edge="1" parent="1" source="act_update" target="calc_totals" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="650" />
+              <mxPoint x="460" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_delete_calc" edge="1" parent="1" source="act_delete" target="calc_totals" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="650" />
+              <mxPoint x="510" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="send_200_cart" value="ส่ง 200 OK&#xa;พร้อมข้อมูลตะกร้าล่าสุด" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="395" y="780" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_calc_send" edge="1" parent="1" source="calc_totals" target="send_200_cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stop_cart" value="จบ (End)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="425" y="870" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cart_stop" edge="1" parent="1" source="send_200_cart" target="stop_cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- BRANCH 4: confirm -->
+        <mxCell id="dec_mode" value="mode คืออะไร?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="350" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e_action_confirm" value="confirm" edge="1" parent="1" source="dec_action" target="dec_mode" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="830" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conf_sale" value="ตัดสต็อกในคลัง&#xa;+ สร้างบิล Order" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="470" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_mode_sale" value="sale" edge="1" parent="1" source="dec_mode" target="conf_sale" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="775" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="conf_stock" value="เพิ่มสต็อกสินค้า&#xa;+ บันทึก log รับเข้า" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="470" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_mode_stock" value="stock" edge="1" parent="1" source="dec_mode" target="conf_stock" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="935" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="clear_cart" value="ล้างตะกร้าใน session&#xa;+ ส่ง 200 ยืนยันสำเร็จ" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="785" y="560" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sale_clear" edge="1" parent="1" source="conf_sale" target="clear_cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="775" y="540" />
+              <mxPoint x="830" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_stock_clear" edge="1" parent="1" source="conf_stock" target="clear_cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="935" y="540" />
+              <mxPoint x="890" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="stop_confirm" value="จบ (End)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="815" y="650" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e_clear_stop" edge="1" parent="1" source="clear_cart" target="stop_confirm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- BRANCH 5: total_sales -->
+        <mxCell id="get_sales" value="ดึงยอดขายสำเร็จของวันนี้&#xa;จากตาราง orders" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="360" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_action_sales" value="total_sales" edge="1" parent="1" source="dec_action" target="get_sales" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="send_sales" value="ส่ง 200 OK&#xa;{total_sales, total}" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1005" y="470" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sales_send" edge="1" parent="1" source="get_sales" target="send_sales" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stop_sales" value="จบ (End)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="560" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e_send_stop" edge="1" parent="1" source="send_sales" target="stop_sales" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

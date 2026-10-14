@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Item } from '@/types/item';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,6 +71,27 @@ export default function CashierPage() {
   const [itemDiscountTarget, setItemDiscountTarget] = useState<CartItem | null>(null);
   const [tempItemDiscountType, setTempItemDiscountType] = useState<'percentage' | 'fixed'>('fixed');
   const [tempItemDiscountValue, setTempItemDiscountValue] = useState<string>('');
+
+  // User action throttling ref for reconciling backend server items
+  const lastUserEditTimeRef = useRef<number>(0);
+  const cartRef = useRef<CartItem[]>(cart);
+  useEffect(() => {
+    cartRef.current = cart;
+  }, [cart]);
+
+  // Helper to sync local cart edits immediately to server
+  const syncCartToServer = useCallback((nextCart: CartItem[]) => {
+    lastUserEditTimeRef.current = Date.now();
+    const payload = nextCart.map((ci) => ({
+      item_id: ci.item.item_id,
+      quantity: ci.quantity,
+    }));
+    fetch('/api/data?mode=sale', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'sale', cart: payload }),
+    }).catch(console.error);
+  }, []);
 
   // Load items and stock settings from API
   const loadItems = useCallback(async () => {
@@ -236,49 +257,69 @@ export default function CashierPage() {
         setTimeout(() => setNotification(null), 3000);
       }
 
+      let updatedCart: CartItem[];
       if (existing) {
-        return prevCart.map((ci) =>
+        updatedCart = prevCart.map((ci) =>
           ci.item.item_id === item.item_id
             ? { ...ci, quantity: ci.quantity + 1 }
             : ci
         );
+      } else {
+        updatedCart = [...prevCart, { item, quantity: 1 }];
       }
-      return [...prevCart, { item, quantity: 1 }];
+      syncCartToServer(updatedCart);
+      return updatedCart;
     });
     setCompletedOrder(null);
-  }, [defaultThreshold]);
+  }, [defaultThreshold, syncCartToServer]);
 
   const updateQuantity = (itemId: number, delta: number) => {
-    setCart((prevCart) =>
-      prevCart
+    setCart((prevCart) => {
+      let overstockItem: string | null = null;
+      let overstockLimit = 0;
+      const updated = prevCart
         .map((ci) => {
           if (ci.item.item_id === itemId) {
             const nextQty = ci.quantity + delta;
             if (delta > 0 && nextQty > ci.item.item_amount) {
-              setNotification({
-                type: 'error',
-                message: `สินค้า "${ci.item.item_name}" มีสต็อกเพียง ${ci.item.item_amount} ชิ้น`,
-              });
+              overstockItem = ci.item.item_name;
+              overstockLimit = ci.item.item_amount;
               return ci;
             }
             return nextQty > 0 ? { ...ci, quantity: nextQty } : null;
           }
           return ci;
         })
-        .filter((ci): ci is CartItem => ci !== null)
-    );
+        .filter((ci): ci is CartItem => ci !== null);
+
+      if (overstockItem) {
+        setNotification({
+          type: 'error',
+          message: `สินค้า "${overstockItem}" มีสต็อกเพียง ${overstockLimit} ชิ้น`,
+        });
+        return prevCart;
+      }
+
+      syncCartToServer(updated);
+      return updated;
+    });
   };
 
   const removeFromCart = (itemId: number) => {
-    setCart((prevCart) => prevCart.filter((ci) => ci.item.item_id !== itemId));
+    setCart((prevCart) => {
+      const updated = prevCart.filter((ci) => ci.item.item_id !== itemId);
+      syncCartToServer(updated);
+      return updated;
+    });
   };
 
   const clearCart = () => {
+    lastUserEditTimeRef.current = Date.now();
     setCart([]);
     setOrderDiscountType('none');
     setOrderDiscountValue(0);
     setCompletedOrder(null);
-    fetch('/api/data?clear_cart=true', { method: 'DELETE' }).catch(console.error);
+    fetch('/api/data?clear_cart=true&mode=sale', { method: 'DELETE' }).catch(console.error);
   };
 
   const openItemDiscountDialog = (cartItem: CartItem) => {
@@ -341,49 +382,90 @@ export default function CashierPage() {
     setOrderDiscountValue(0);
   };
 
-  // Poll barcode scanner and auto-add item
+  // Poll barcode scanner and reconcile cart with GET /api/data?mode=sale
   const checkBarcodeScanner = useCallback(async () => {
     try {
-      const res = await fetch('/api/data', { cache: 'no-store' });
+      const res = await fetch('/api/data?mode=sale', { cache: 'no-store' });
       if (!res.ok) return;
       const json = await res.json();
       const scannedCode = (json.text || '').trim();
 
-      if (!scannedCode || scannedCode === 'No data') return;
+      // 1. Process scanned barcode notifications if any barcode arrived
+      if (scannedCode && scannedCode !== 'No data') {
+        const matched = items.find(
+          (it) => it.item_barcode.toLowerCase() === scannedCode.toLowerCase()
+        );
 
-      const matched = items.find(
-        (it) => it.item_barcode.toLowerCase() === scannedCode.toLowerCase()
-      );
-
-      if (matched) {
-        const expiry = getExpiryStatus(matched.expiry_date);
-        if (expiry.status === 'expired') {
-          setExpiredItemToConfirm(matched);
+        if (matched) {
+          const expiry = getExpiryStatus(matched.expiry_date);
+          if (expiry.status === 'expired') {
+            setExpiredItemToConfirm(matched);
+            setNotification({
+              type: 'error',
+              message: `คำเตือน: สแกนพบสินค้าหมดอายุ "${matched.item_name}" (${formatExpiryDate(matched.expiry_date)})`,
+            });
+          } else {
+            setNotification({
+              type: 'success',
+              message: `สแกนบาร์โค้ดสำเร็จ: เพิ่ม "${matched.item_name}" แล้ว`,
+            });
+          }
+        } else {
           setNotification({
             type: 'error',
-            message: `คำเตือน: สแกนพบสินค้าหมดอายุ "${matched.item_name}" (${formatExpiryDate(matched.expiry_date)})`,
-          });
-        } else {
-          addToCart(matched);
-          setNotification({
-            type: 'success',
-            message: `สแกนบาร์โค้ดสำเร็จ: เพิ่ม "${matched.item_name}" แล้ว`,
+            message: `ไม่พบสินค้าตรงกับบาร์โค้ด: ${scannedCode}`,
           });
         }
-      } else {
-        setNotification({
-          type: 'error',
-          message: `ไม่พบสินค้าตรงกับบาร์โค้ด: ${scannedCode}`,
-        });
+
+        setTimeout(() => {
+          setNotification(null);
+        }, 3500);
       }
 
-      setTimeout(() => {
-        setNotification(null);
-      }, 3500);
+      // 2. Reconcile server items with local cart state if not within 1200ms of user manual edit
+      const timeSinceUserEdit = Date.now() - lastUserEditTimeRef.current;
+      if (timeSinceUserEdit >= 1200 && Array.isArray(json.items)) {
+        const serverItems = json.items as Array<{ item_id: number; quantity: number }>;
+        const currentCart = cartRef.current;
+
+        // Compare if server items differ from local cart
+        const isCartDifferent = (() => {
+          if (serverItems.length !== currentCart.length) return true;
+          for (const sItem of serverItems) {
+            const local = currentCart.find((ci) => ci.item.item_id === sItem.item_id);
+            if (!local || local.quantity !== sItem.quantity) {
+              return true;
+            }
+          }
+          return false;
+        })();
+
+        if (isCartDifferent) {
+          if (serverItems.length === 0) {
+            setCart([]);
+          } else {
+            // Reconcile: map item_id to full Item details from the items prop, retaining discounts
+            const newCart: CartItem[] = [];
+            for (const sItem of serverItems) {
+              const fullItem = items.find((it) => it.item_id === sItem.item_id);
+              if (fullItem) {
+                const existing = currentCart.find((ci) => ci.item.item_id === sItem.item_id);
+                newCart.push({
+                  item: fullItem,
+                  quantity: sItem.quantity,
+                  discountType: existing?.discountType,
+                  discountValue: existing?.discountValue,
+                });
+              }
+            }
+            setCart(newCart);
+          }
+        }
+      }
     } catch (err) {
       console.error('Barcode scanner check failed:', err);
     }
-  }, [items, addToCart]);
+  }, [items]);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -391,19 +473,20 @@ export default function CashierPage() {
     return () => clearInterval(interval);
   }, [items, checkBarcodeScanner]);
 
-  // Synchronize cashier cart to active_cart in backend so scanner display always reflects latest summary
+  // Synchronize cashier cart to active_cart in backend on initial load / restore
   useEffect(() => {
     if (!isHydrated) return;
+    if (Date.now() - lastUserEditTimeRef.current < 1200) return;
     const payload = cart.map((ci) => ({
       item_id: ci.item.item_id,
       quantity: ci.quantity,
     }));
-    fetch('/api/data', {
+    fetch('/api/data?mode=sale', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cart: payload }),
+      body: JSON.stringify({ mode: 'sale', cart: payload }),
     }).catch(console.error);
-  }, [cart, isHydrated]);
+  }, [isHydrated]);
 
   // Filter items by search query
   const filteredItems = useMemo(() => {
@@ -549,10 +632,11 @@ export default function CashierPage() {
           id: data.order.order_name,
           total: data.order.order_price,
         });
+        lastUserEditTimeRef.current = Date.now();
         setCart([]);
         setOrderDiscountType('none');
         setOrderDiscountValue(0);
-        fetch('/api/data?clear_cart=true', { method: 'DELETE' }).catch(console.error);
+        fetch('/api/data?clear_cart=true&mode=sale', { method: 'DELETE' }).catch(console.error);
         setNotification({
           type: 'success',
           message: `ชำระเงินสำเร็จ! เลขที่ ${data.order.order_name}`,

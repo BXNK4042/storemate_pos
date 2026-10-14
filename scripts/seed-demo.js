@@ -28,14 +28,14 @@ const seed = db.transaction(() => {
   const addDays = (d, days) => new Date(d.getTime() + days * 86400000);
 
   const items = [
-    [1, 'เลย์ คลาสสิค 50 กรัม', 20, 4, 'abcdefg', null, 5], // low stock (4 <= 5)
-    [2, 'โค้ก ออริจินัล 325 มล.', 15, 36, 'coke325ml', null, null],
-    [3, 'คิทแคท เวเฟอร์ช็อกโกแลต', 25, 24, 'kitkatbar', null, null],
-    [4, 'ชาเขียวโออิชิ รสต้นตำรับ', 20, 3, 'oishitea', null, 5], // low stock (3 <= 5)
-    [5, 'เป๊ปซี่ แมกซ์ 325 มล.', 16, 28, '885002900101', null, null],
-    [6, 'มาม่า ต้มยำกุ้งน้ำข้น', 7, 45, '885002900107', null, null],
-    [7, 'นมพาสเจอร์ไรส์ เมจิ 200 มล.', 27, 8, '885002900108', formatYMD(addDays(now, 5)), null], // expiring soon
-    [8, 'แซนด์วิชแฮมชีส ตราซีพี', 35, 6, '885002900109', formatYMD(addDays(now, 1)), null], // expiring very soon
+    [1, "Lay's Classic 50g", 20, 4, 'abcdefg', null, 5], // low stock (4 <= 5)
+    [2, 'Coke Original 325ml', 15, 36, 'coke325ml', null, null],
+    [3, 'KitKat Chocolate Wafer', 25, 24, 'kitkatbar', null, null],
+    [4, 'Oishi Green Tea Original', 20, 3, 'oishitea', null, 5], // low stock (3 <= 5)
+    [5, 'Pepsi Max 325ml', 16, 28, '885002900101', null, null],
+    [6, 'Mama Tom Yum Kung Creamy', 7, 45, '885002900107', null, null],
+    [7, 'Meiji Pasteurized Milk 200ml', 27, 8, '885002900108', formatYMD(addDays(now, 5)), null], // expiring soon
+    [8, 'CP Ham & Cheese Sandwich', 35, 6, '885002900109', formatYMD(addDays(now, 1)), null], // expiring very soon
   ];
 
   for (const item of items) {

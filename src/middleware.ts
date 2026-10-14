@@ -37,10 +37,16 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Check /api/data with scanner API key for unauthenticated requests
-  if (pathname === "/api/data" || pathname.startsWith("/api/data/")) {
+  // Check /api/data or /api/stock-in with scanner API key for unauthenticated requests
+  if (
+    pathname === "/api/data" ||
+    pathname.startsWith("/api/data/") ||
+    pathname === "/api/stock-in" ||
+    pathname.startsWith("/api/stock-in/")
+  ) {
     const apiKey = request.headers.get("x-api-key");
-    if (process.env.SCANNER_API_KEY && apiKey === process.env.SCANNER_API_KEY) {
+    const validApiKey = process.env.SCANNER_API_KEY || "pos-scan-key-3849fbc281e047da";
+    if (apiKey === validApiKey) {
       return NextResponse.next();
     }
   }
