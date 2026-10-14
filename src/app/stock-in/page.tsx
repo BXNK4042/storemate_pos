@@ -1,8 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import type { Item } from '@/types/item';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,10 +25,13 @@ import {
   AlertCircle,
   AlertTriangle,
   RotateCcw,
-  Sparkles,
+  History,
+  Package,
   Layers,
-  Search,
   Check,
+  ImageIcon,
+  Boxes,
+  BadgeCent,
 } from 'lucide-react';
 
 interface StockCartItem {
@@ -46,7 +58,7 @@ export default function StockInPage() {
     totalQuantity: number;
   } | null>(null);
 
-  // Fetch catalog items to resolve current stock
+  // Fetch catalog items to resolve current stock and item images
   const loadCatalogItems = useCallback(async () => {
     try {
       const res = await fetch('/api/items');
@@ -124,6 +136,10 @@ export default function StockInPage() {
   const totalItemCount = stockCart.length;
   const totalUnitCount = useMemo(
     () => stockCart.reduce((sum, ci) => sum + ci.quantity, 0),
+    [stockCart]
+  );
+  const totalValue = useMemo(
+    () => stockCart.reduce((sum, ci) => sum + (ci.price || 0) * ci.quantity, 0),
     [stockCart]
   );
 
@@ -275,58 +291,103 @@ export default function StockInPage() {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Sleek High-Contrast Industrial Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute -right-6 -bottom-8 opacity-10 pointer-events-none select-none text-slate-100">
-          <Layers className="h-48 w-48" />
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+            <span>รับเข้าสต็อก</span>
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            สแกนบาร์โค้ดเพื่อรับสินค้าเข้าคลังและปรับปรุงจำนวนสต็อกอัตโนมัติ
+          </p>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live Sync
-              </span>
-              <span className="text-xs text-slate-400 font-mono tracking-wider">
-                MODE: STOCK_INTAKE
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
-              <PackagePlus className="h-7 w-7 text-emerald-400" />
-              Stock Intake / รับเข้าสต็อก
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400">
-              สแกนบาร์โค้ดด้วยเครื่องสแกนเนอร์ ESP32 หรือป้อนรหัสบาร์โค้ดโดยตรงเพื่อเพิ่มสต็อกสินค้า
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <Link href="/items">
+            <Button
+              variant="outline"
+              className="gap-1.5 cursor-pointer text-gray-700 hover:text-gray-900"
+            >
+              <Package className="h-4 w-4 text-primary" />
+              <span>คลังสินค้า</span>
+            </Button>
+          </Link>
+          <Link href="/items/adjustments">
+            <Button
+              variant="outline"
+              className="gap-1.5 cursor-pointer text-gray-700 hover:text-gray-900"
+            >
+              <History className="h-4 w-4 text-primary" />
+              <span>ประวัติการปรับสต็อก</span>
+            </Button>
+          </Link>
+        </div>
+      </div>
 
-          {/* Quick Metrics Counter */}
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl px-4 py-2.5 text-center min-w-[100px]">
-              <span className="block text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+      {/* Top Stat Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="border border-border/80 shadow-xs">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">
                 รายการสินค้า
               </span>
-              <span className="text-2xl font-black text-white font-mono">
-                {totalItemCount}
-              </span>
+              <p className="text-2xl font-bold text-foreground">
+                {totalItemCount}{' '}
+                <span className="text-xs font-normal text-muted-foreground">
+                  รายการ
+                </span>
+              </p>
             </div>
-            <div className="bg-emerald-950/60 border border-emerald-600/40 rounded-xl px-4 py-2.5 text-center min-w-[110px]">
-              <span className="block text-[11px] font-medium text-emerald-400 uppercase tracking-wider">
-                จำนวนชิ้นรวม
-              </span>
-              <span className="text-2xl font-black text-emerald-300 font-mono">
-                +{totalUnitCount}
-              </span>
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <Layers className="h-5 w-5" />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/80 shadow-xs">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                จำนวนชิ้นรับเข้ารวม
+              </span>
+              <p className="text-2xl font-bold text-emerald-600">
+                +{totalUnitCount}{' '}
+                <span className="text-xs font-normal text-muted-foreground">
+                  ชิ้น
+                </span>
+              </p>
+            </div>
+            <div className="h-10 w-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Boxes className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/80 shadow-xs">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                มูลค่ารับเข้ารวม
+              </span>
+              <p className="text-2xl font-bold text-foreground">
+                ฿{totalValue.toLocaleString()}{' '}
+                <span className="text-xs font-normal text-muted-foreground">
+                  บาท
+                </span>
+              </p>
+            </div>
+            <div className="h-10 w-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+              <BadgeCent className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Notifications Banner */}
       {notification && (
         <div
-          className={`flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-all shadow-sm ${
+          className={`flex items-center justify-between px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
             notification.type === 'success'
               ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
               : notification.type === 'warning'
@@ -334,13 +395,13 @@ export default function StockInPage() {
               : 'bg-rose-50 text-rose-900 border-rose-200'
           }`}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             {notification.type === 'success' ? (
-              <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
             ) : notification.type === 'warning' ? (
-              <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
             ) : (
-              <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
             )}
             <span>{notification.message}</span>
           </div>
@@ -355,9 +416,9 @@ export default function StockInPage() {
 
       {/* Last Committed Banner */}
       {lastCommittedInfo && !stockCart.length && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
+            <div className="p-2 bg-emerald-100 text-emerald-700 rounded-md">
               <Check className="h-5 w-5" />
             </div>
             <div>
@@ -380,25 +441,25 @@ export default function StockInPage() {
         </div>
       )}
 
-      {/* Manual Barcode Input Card */}
-      <Card className="border-slate-200 shadow-xs">
-        <CardContent className="p-4 sm:p-5">
+      {/* Barcode Scan Bar */}
+      <Card className="border border-border/80 shadow-xs">
+        <CardContent className="p-4">
           <form onSubmit={handleManualAdd} className="flex flex-col sm:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
               <ScanLine className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="สแกนบาร์โค้ด หรือ พิมพ์รหัสบาร์โค้ดแล้วกดเพิ่ม..."
+                placeholder="สแกนบาร์โค้ด หรือพิมพ์รหัสบาร์โค้ดแล้วกดเพิ่ม..."
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
-                className="pl-10 pr-4 h-11 text-sm bg-background font-mono"
+                className="pl-10 pr-4 h-10 text-sm bg-background font-mono"
                 autoFocus
               />
             </div>
             <Button
               type="submit"
               disabled={!barcodeInput.trim()}
-              className="w-full sm:w-auto h-11 px-5 bg-slate-900 hover:bg-slate-800 text-white font-medium cursor-pointer shrink-0 gap-1.5"
+              className="w-full sm:w-auto h-10 px-4 cursor-pointer shrink-0 gap-1.5"
             >
               <Plus className="h-4 w-4" />
               เพิ่มเข้ารายการ
@@ -407,187 +468,177 @@ export default function StockInPage() {
         </CardContent>
       </Card>
 
-      {/* Staged Items Table / Cards */}
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
-        <CardHeader className="bg-slate-50/80 border-b border-slate-200/80 py-4 px-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <span>รายการรับเข้าสต็อกที่กำลังเตรียมบันทึก (Staged Items)</span>
-                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-200 text-slate-800">
-                  {totalItemCount}
-                </span>
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                รายการจะถูกซิงค์แบบสดกับบาร์โค้ดสแกนเนอร์ สามารถปรับจำนวนหรือลบรายการก่อนยืนยันได้
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClear}
-                disabled={stockCart.length === 0 || isSubmitting}
-                className="text-xs h-9 text-slate-600 hover:text-rose-600 hover:bg-rose-50 border-slate-300 cursor-pointer gap-1.5"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                ล้างรายการทั้งหมด
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleConfirmRestock}
-                disabled={stockCart.length === 0 || isSubmitting}
-                className="text-xs h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer gap-1.5 shadow-xs"
-              >
-                {isSubmitting ? (
-                  <>กำลังบันทึก...</>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    ยืนยันรับเข้าสต็อก (+{totalUnitCount})
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-
+      {/* Staged Intake Table */}
+      <Card className="overflow-hidden p-0 gap-0">
         <CardContent className="p-0">
-          {stockCart.length === 0 ? (
-            <div className="py-16 px-4 text-center">
-              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
-                <ScanLine className="h-7 w-7" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-800">
-                ยังไม่มีรายการรับเข้าสต็อก
-              </h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-                สแกนบาร์โค้ดด้วยเครื่องอ่าน ESP32 หรือกรอกรหัสบาร์โค้ดด้านบนเพื่อเตรียมสต็อกเข้าสู่ระบบ
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100 overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-100/60 text-slate-600 font-semibold border-b border-slate-200">
-                  <tr>
-                    <th className="py-3 px-4 w-12 text-center">ลำดับ</th>
-                    <th className="py-3 px-4">สินค้า</th>
-                    <th className="py-3 px-4 font-mono">บาร์โค้ด</th>
-                    <th className="py-3 px-4 text-right">สต็อกเดิม</th>
-                    <th className="py-3 px-4 text-center">จำนวนรับเข้า</th>
-                    <th className="py-3 px-4 text-right">สต็อกใหม่</th>
-                    <th className="py-3 px-4 text-center w-20">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {stockCart.map((ci, idx) => {
-                    const catalogItem = itemsById.get(ci.item_id);
-                    const currentStock = catalogItem ? catalogItem.item_amount : 0;
-                    const newStock = currentStock + ci.quantity;
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="w-[64px]">รูปภาพ</TableHead>
+                <TableHead>สินค้า</TableHead>
+                <TableHead className="text-right w-[140px]">สต็อกปัจจุบัน</TableHead>
+                <TableHead className="text-center w-[160px]">จำนวนรับเข้า</TableHead>
+                <TableHead className="text-right w-[160px]">สต็อกหลังรับเข้า</TableHead>
+                <TableHead className="text-center w-[80px]">จัดการ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stockCart.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-16 text-center text-muted-foreground"
+                  >
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground">
+                      <PackagePlus className="h-6 w-6" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">
+                      ยังไม่มีรายการรับเข้าสต็อก
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                      สแกนบาร์โค้ดด้วยเครื่องสแกนเนอร์หรือพิมพ์รหัสบาร์โค้ดด้านบนเพื่อเตรียมสต็อกเข้าสู่ระบบ
+                    </p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                stockCart.map((ci) => {
+                  const catalogItem = itemsById.get(ci.item_id);
+                  const currentStock = catalogItem ? catalogItem.item_amount : 0;
+                  const newStock = currentStock + ci.quantity;
 
-                    return (
-                      <tr
-                        key={ci.item_id}
-                        className="hover:bg-slate-50/80 transition-colors"
-                      >
-                        <td className="py-3 px-4 text-center font-mono text-slate-400">
-                          {idx + 1}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-semibold text-slate-900 text-sm">
+                  return (
+                    <TableRow key={ci.item_id} className="hover:bg-muted/30">
+                      {/* Image Thumbnail */}
+                      <TableCell>
+                        <div className="h-10 w-10 rounded-md border border-gray-100 bg-white overflow-hidden flex items-center justify-center">
+                          {catalogItem?.item_image ? (
+                            <img
+                              src={catalogItem.item_image}
+                              alt={ci.name}
+                              className="h-full w-full object-contain p-0.5"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* Item Details */}
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-foreground text-sm">
                             {ci.name}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground">
-                            ราคาขาย: {ci.price?.toLocaleString()} ฿
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-mono font-medium text-slate-600 text-xs">
-                          {ci.barcode}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <span className="font-mono font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                            {currentStock}
                           </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7 rounded-lg cursor-pointer text-slate-600"
-                              onClick={() => handleUpdateQty(ci.barcode, -1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-10 text-center font-mono font-black text-sm text-emerald-600 bg-emerald-50 py-0.5 rounded border border-emerald-200">
-                              +{ci.quantity}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="font-mono text-xs text-muted-foreground bg-muted/60 px-1.5 py-0.2 rounded border border-border/50">
+                              {ci.barcode}
                             </span>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7 rounded-lg cursor-pointer text-slate-600"
-                              onClick={() => handleUpdateQty(ci.barcode, 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5 font-mono">
-                            <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
-                              {newStock}
+                            <span className="text-xs text-muted-foreground">
+                              ฿{ci.price?.toLocaleString()}
                             </span>
                           </div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
+                        </div>
+                      </TableCell>
+
+                      {/* Current Stock */}
+                      <TableCell className="text-right font-mono font-medium text-muted-foreground text-sm">
+                        {currentStock} ชิ้น
+                      </TableCell>
+
+                      {/* Staged Quantity with Stepper */}
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1.5">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
-                            className="h-7 w-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                            onClick={() => handleRemoveRow(ci.barcode, ci.quantity)}
+                            className="h-7 w-7 rounded-md cursor-pointer text-muted-foreground hover:text-foreground"
+                            onClick={() => handleUpdateQty(ci.barcode, -1)}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Minus className="h-3 w-3" />
                           </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <span className="w-12 text-center font-mono font-semibold text-sm text-emerald-600 bg-emerald-50 py-0.5 rounded border border-emerald-200">
+                            +{ci.quantity}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7 rounded-md cursor-pointer text-muted-foreground hover:text-foreground"
+                            onClick={() => handleUpdateQty(ci.barcode, 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+
+                      {/* Resulting Stock Preview */}
+                      <TableCell className="text-right">
+                        <div className="inline-flex items-center justify-end gap-1.5 font-mono text-xs bg-muted/60 border border-border/60 px-2.5 py-1 rounded-md">
+                          <span className="text-muted-foreground">{currentStock}</span>
+                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-bold text-foreground">{newStock}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Remove Button */}
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer"
+                          onClick={() => handleRemoveRow(ci.barcode, ci.quantity)}
+                          title="ลบรายการ"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+
+          {/* Table Footer with Commit Actions */}
+          {stockCart.length > 0 && (
+            <div className="p-4 border-t border-border bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="text-muted-foreground">
+                กำลังแสดง <strong className="text-foreground">{totalItemCount}</strong> รายการ |
+                รวมรับเข้าทั้งหมด <strong className="text-emerald-600 font-bold">+{totalUnitCount}</strong> ชิ้น
+                (มูลค่ารวม ฿{totalValue.toLocaleString()})
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClear}
+                  disabled={isSubmitting}
+                  className="text-xs h-9 cursor-pointer text-muted-foreground hover:text-rose-600 hover:bg-rose-50 gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  ล้างรายการ
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleConfirmRestock}
+                  disabled={isSubmitting}
+                  className="text-xs h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-medium cursor-pointer gap-1.5 shadow-xs"
+                >
+                  {isSubmitting ? (
+                    'กำลังบันทึก...'
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      ยืนยันการรับเข้าสต็อก (+{totalUnitCount} ชิ้น)
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
-
-        {stockCart.length > 0 && (
-          <CardFooter className="bg-slate-50/50 border-t border-slate-200/80 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-xs text-slate-500">
-              กำลังแสดง <span className="font-bold text-slate-700">{totalItemCount}</span> รายการ
-              รวมเพิ่มสต็อกทั้งหมด <span className="font-bold text-emerald-600">+{totalUnitCount}</span> ชิ้น
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClear}
-                disabled={isSubmitting}
-                className="text-xs cursor-pointer"
-              >
-                ล้างรายการ
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleConfirmRestock}
-                disabled={isSubmitting}
-                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer gap-1.5 shadow-xs"
-              >
-                {isSubmitting ? 'กำลังบันทึก...' : `ยืนยันรับเข้าสต็อก (+${totalUnitCount} ชิ้น)`}
-              </Button>
-            </div>
-          </CardFooter>
-        )}
       </Card>
     </div>
   );
 }
+
