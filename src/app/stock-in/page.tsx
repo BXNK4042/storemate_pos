@@ -27,11 +27,8 @@ import {
   RotateCcw,
   History,
   Package,
-  Layers,
   Check,
   ImageIcon,
-  Boxes,
-  BadgeCent,
 } from 'lucide-react';
 
 interface StockCartItem {
@@ -322,66 +319,6 @@ export default function StockInPage() {
             </Button>
           </Link>
         </div>
-      </div>
-
-      {/* Top Stat Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                รายการสินค้า
-              </span>
-              <p className="text-2xl font-bold text-foreground">
-                {totalItemCount}{' '}
-                <span className="text-xs font-normal text-muted-foreground">
-                  รายการ
-                </span>
-              </p>
-            </div>
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-              <Layers className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                จำนวนชิ้นรับเข้ารวม
-              </span>
-              <p className="text-2xl font-bold text-emerald-600">
-                +{totalUnitCount}{' '}
-                <span className="text-xs font-normal text-muted-foreground">
-                  ชิ้น
-                </span>
-              </p>
-            </div>
-            <div className="h-10 w-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <Boxes className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                มูลค่ารับเข้ารวม
-              </span>
-              <p className="text-2xl font-bold text-foreground">
-                ฿{totalValue.toLocaleString()}{' '}
-                <span className="text-xs font-normal text-muted-foreground">
-                  บาท
-                </span>
-              </p>
-            </div>
-            <div className="h-10 w-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <BadgeCent className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Notifications Banner */}
