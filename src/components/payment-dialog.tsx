@@ -31,7 +31,6 @@ import { PaymentSettingsDialog } from "@/components/settings/payment-settings-di
 import { type PromptPayMode } from "@/lib/promptpay";
 import {
   calculateCashPayment,
-  getSmartCashSuggestions,
   isHugeOverpayment,
   ADDITIVE_BILLS,
 } from "@/lib/cash";
@@ -146,24 +145,12 @@ export function PaymentDialog({
   const cashCalc = calculateCashPayment(totalAmount, cashReceived);
   const isCashInsufficient = method === "cash" && cashCalc.isInsufficient;
   const hugeOverpayment = method === "cash" && isHugeOverpayment(totalAmount, cashReceived);
-  const smartPresets = getSmartCashSuggestions(totalAmount);
 
   // Cash Action Handlers
-  const handleSetCash = (amount: number) => {
-    const clean = Math.max(0, Math.round(amount * 100) / 100);
-    setCashReceived(clean);
-    setRawCashInput(clean === 0 ? "" : String(clean));
-  };
-
   const handleAddBill = (bill: number) => {
     const next = Math.round((cashReceived + bill) * 100) / 100;
     setCashReceived(next);
     setRawCashInput(String(next));
-  };
-
-  const handleExact = () => {
-    setCashReceived(totalAmount);
-    setRawCashInput(totalAmount > 0 ? String(totalAmount) : "");
   };
 
   const handleClear = () => {
@@ -370,39 +357,6 @@ export function PaymentDialog({
                       +{bill}
                     </Button>
                   ))}
-                </div>
-              </div>
-
-              {/* Smart Quick-Pay Buttons */}
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  ทางลัดยอดเงิน (Smart Presets)
-                </span>
-                <div className="grid grid-cols-4 gap-1.5">
-                  <Button
-                    type="button"
-                    variant={cashReceived === totalAmount ? "default" : "outline"}
-                    size="sm"
-                    onClick={handleExact}
-                    className="h-9 text-xs font-semibold"
-                  >
-                    พอดี
-                  </Button>
-                  {smartPresets
-                    .filter((preset) => preset > totalAmount)
-                    .slice(0, 3)
-                    .map((preset) => (
-                      <Button
-                        key={preset}
-                        type="button"
-                        variant={cashReceived === preset ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handleSetCash(preset)}
-                        className="h-9 text-xs font-mono font-bold"
-                      >
-                        {preset.toLocaleString()}
-                      </Button>
-                    ))}
                 </div>
               </div>
 
