@@ -32,10 +32,13 @@ export function ChartLineLinear({
   loading = false,
 }: ChartLineLinearProps) {
   const chartData = data.length > 0 ? data : [
-    { label: "08:00", sales: 0 },
+    { label: "10:00", sales: 0 },
     { label: "12:00", sales: 0 },
+    { label: "14:00", sales: 0 },
     { label: "16:00", sales: 0 },
+    { label: "18:00", sales: 0 },
     { label: "20:00", sales: 0 },
+    { label: "22:00", sales: 0 },
   ];
 
   return (
@@ -59,6 +62,7 @@ export function ChartLineLinear({
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
+                interval={0}
               />
               <ChartTooltip
                 cursor={false}

@@ -90,7 +90,7 @@ export function getDashboardStats(): DashboardStats {
   const hourlyTrend = db
     .prepare(`
       WITH RECURSIVE hours(h) AS (
-        SELECT 8
+        SELECT 10
         UNION ALL
         SELECT h + 2
         FROM hours
