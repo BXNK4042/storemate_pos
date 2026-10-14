@@ -58,6 +58,7 @@ interface CartItemRow {
   price: number;
   barcode: string;
   quantity: number;
+  current_quantity: number;
   subtotal: number;
   updated_at: string;
 }
@@ -82,13 +83,14 @@ function getSessionCart(mode: string): {
     )
     .get(mode) as { total: number; total_items: number; item_count: number };
 
-  const cartItems = db
+  const rawRows = db
     .prepare(
       `SELECT 
         ac.item_id, 
         i.item_name AS name, 
         i.item_price AS price, 
         i.item_barcode AS barcode, 
+        i.item_amount AS current_quantity,
         ac.quantity, 
         (ac.quantity * i.item_price) AS subtotal,
         ac.updated_at
@@ -97,7 +99,18 @@ function getSessionCart(mode: string): {
       WHERE ac.mode = ? 
       ORDER BY ac.updated_at ASC, ac.item_id ASC`
     )
-    .all(mode) as CartItemRow[];
+    .all(mode) as any[];
+
+  const cartItems: CartItemRow[] = rawRows.map((row) => ({
+    item_id: Number(row.item_id),
+    name: String(row.name),
+    price: Number(row.price),
+    barcode: String(row.barcode),
+    quantity: Number(row.quantity),
+    current_quantity: Number(row.current_quantity ?? 0),
+    subtotal: Number(row.subtotal),
+    updated_at: String(row.updated_at),
+  }));
 
   const total = Number(summaryRow?.total || 0);
   const totalItems = Number(summaryRow?.total_items || 0);
@@ -141,8 +154,8 @@ export async function POST(req: Request) {
       }
 
       const item = db
-        .prepare("SELECT item_id, item_name, item_price, item_barcode FROM items WHERE item_barcode = ?")
-        .get(barcode) as { item_id: number; item_name: string; item_price: number; item_barcode: string } | undefined;
+        .prepare("SELECT item_id, item_name, item_price, item_barcode, item_amount FROM items WHERE item_barcode = ?")
+        .get(barcode) as { item_id: number; item_name: string; item_price: number; item_barcode: string; item_amount: number } | undefined;
 
       if (!item) {
         const sessionCart = getSessionCart(mode);
@@ -157,6 +170,32 @@ export async function POST(req: Request) {
           },
           { status: 404, headers: NO_CACHE_HEADERS }
         );
+      }
+
+      if (mode === "sale") {
+        const cartRow = db
+          .prepare("SELECT quantity FROM active_cart WHERE item_id = ? AND mode = 'sale'")
+          .get(item.item_id) as { quantity: number } | undefined;
+        const existingCartQuantity = cartRow ? Number(cartRow.quantity) : 0;
+        const itemAmount = Number(item.item_amount ?? 0);
+
+        if (existingCartQuantity + 1 > itemAmount) {
+          const sessionCart = getSessionCart(mode);
+          return Response.json(
+            {
+              success: false,
+              error: "Insufficient stock",
+              name: item.item_name,
+              barcode: item.item_barcode,
+              current_quantity: itemAmount,
+              cart_quantity: existingCartQuantity,
+              total: sessionCart.total,
+              total_quantity: sessionCart.total_quantity,
+              items: sessionCart.items,
+            },
+            { status: 400, headers: NO_CACHE_HEADERS }
+          );
+        }
       }
 
       enqueueBarcode(barcode);
@@ -177,6 +216,7 @@ export async function POST(req: Request) {
           name: item.item_name,
           price: item.item_price,
           barcode: item.item_barcode,
+          current_quantity: Number(item.item_amount ?? 0),
           total: sessionCart.total,
           total_items: sessionCart.total_items,
           total_quantity: sessionCart.total_quantity,
@@ -213,6 +253,26 @@ export async function POST(req: Request) {
       }
 
       if (targetRow) {
+        if (mode === "sale" && qty > 0) {
+          const itemRow = db
+            .prepare("SELECT item_amount FROM items WHERE item_id = ?")
+            .get(targetRow.item_id) as { item_amount: number } | undefined;
+          const itemAmount = Number(itemRow?.item_amount ?? 0);
+          if (targetRow.quantity + qty > itemAmount) {
+            const sessionCart = getSessionCart(mode);
+            return Response.json(
+              {
+                success: false,
+                error: "Insufficient stock",
+                current_quantity: itemAmount,
+                cart_quantity: targetRow.quantity,
+                ...sessionCart,
+              },
+              { status: 400, headers: NO_CACHE_HEADERS }
+            );
+          }
+        }
+
         const now = new Date().toISOString();
         const newQty = targetRow.quantity + qty;
         if (newQty <= 0) {

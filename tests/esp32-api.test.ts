@@ -208,11 +208,13 @@ describe("ESP32 StoreMate POS API (/api/data)", () => {
       assert.equal(data.name, "Green Tea 500ml");
       assert.equal(data.price, 25);
       assert.equal(data.barcode, "8850000001");
+      assert.equal(data.current_quantity, 10);
       assert.equal(data.total, 25);
       assert.equal(data.total_quantity, 1);
       assert.equal(data.items.length, 1);
       assert.equal(data.items[0].barcode, "8850000001");
       assert.equal(data.items[0].quantity, 1);
+      assert.equal(data.items[0].current_quantity, 10);
     });
 
     it("scans item using body.barcode with action='scan'", async () => {
@@ -228,8 +230,10 @@ describe("ESP32 StoreMate POS API (/api/data)", () => {
       assert.equal(data.name, "Potato Chips 50g");
       assert.equal(data.price, 30);
       assert.equal(data.barcode, "8850000002");
+      assert.equal(data.current_quantity, 20);
       assert.equal(data.total, 30);
       assert.equal(data.total_quantity, 1);
+      assert.equal(data.items[0].current_quantity, 20);
     });
 
     it("upserts quantity on repeated scan and places latest item at the end of items array", async () => {
@@ -283,6 +287,49 @@ describe("ESP32 StoreMate POS API (/api/data)", () => {
       assert.equal(data.items.length, 1);
       assert.equal(data.items[0].barcode, "8850000001");
     });
+
+    it("rejects scan in sale mode when quantity exceeds item_amount with 400 Insufficient stock", async () => {
+      // Item 3 has item_amount = 5
+      for (let i = 0; i < 5; i++) {
+        const res = await POST(createRequest({ body: { mode: "sale", barcode: "8850000003" } }));
+        assert.equal(res.status, 200);
+      }
+
+      // 6th scan exceeds stock (5 + 1 > 5)
+      const res = await POST(createRequest({ body: { mode: "sale", barcode: "8850000003" } }));
+      assert.equal(res.status, 400);
+      const data = await res.json();
+      assert.equal(data.success, false);
+      assert.equal(data.error, "Insufficient stock");
+      assert.equal(data.name, "Mineral Water");
+      assert.equal(data.barcode, "8850000003");
+      assert.equal(data.current_quantity, 5);
+      assert.equal(data.cart_quantity, 5);
+      assert.equal(data.total, 50); // 5 * 10
+      assert.equal(data.total_quantity, 5);
+      assert.equal(data.items.length, 1);
+      assert.equal(data.items[0].quantity, 5);
+
+      // Verify active_cart was not incremented beyond 5
+      const cartRow = db.prepare("SELECT quantity FROM active_cart WHERE item_id = 3 AND mode = 'sale'").get() as any;
+      assert.equal(cartRow.quantity, 5);
+    });
+
+    it("allows scanning beyond item_amount in stock mode", async () => {
+      // Item 3 has item_amount = 5. In stock intake mode, scanning more than 5 items should succeed.
+      for (let i = 0; i < 7; i++) {
+        const res = await POST(createRequest({ body: { mode: "stock", barcode: "8850000003" } }));
+        assert.equal(res.status, 200);
+        const data = await res.json();
+        assert.equal(data.success, true);
+        assert.equal(data.current_quantity, 5);
+        assert.equal(data.items[0].quantity, i + 1);
+        assert.equal(data.items[0].current_quantity, 5);
+      }
+
+      const cartRow = db.prepare("SELECT quantity FROM active_cart WHERE item_id = 3 AND mode = 'stock'").get() as any;
+      assert.equal(cartRow.quantity, 7);
+    });
   });
 
   describe("Action: update_qty", () => {
@@ -299,6 +346,30 @@ describe("ESP32 StoreMate POS API (/api/data)", () => {
       assert.equal(data.total_quantity, 4); // 1 + 3
       assert.equal(data.total, 100); // 4 * 25
       assert.equal(data.items[0].quantity, 4);
+    });
+
+    it("rejects update_qty in sale mode when target quantity exceeds item_amount with 400 Insufficient stock", async () => {
+      // Item 3 has item_amount = 5
+      await POST(createRequest({ body: { mode: "sale", barcode: "8850000003" } })); // qty = 1
+
+      // Try updating qty by +5 (1 + 5 = 6 > 5)
+      const res = await POST(createRequest({
+        body: { action: "update_qty", mode: "sale", barcode: "8850000003", quantity: 5 }
+      }));
+
+      assert.equal(res.status, 400);
+      const data = await res.json();
+      assert.equal(data.success, false);
+      assert.equal(data.error, "Insufficient stock");
+      assert.equal(data.current_quantity, 5);
+      assert.equal(data.cart_quantity, 1);
+      assert.equal(data.total_quantity, 1);
+      assert.equal(data.total, 10);
+      assert.equal(data.items[0].quantity, 1);
+
+      // Verify active_cart was NOT modified
+      const cartRow = db.prepare("SELECT quantity FROM active_cart WHERE item_id = 3 AND mode = 'sale'").get() as any;
+      assert.equal(cartRow.quantity, 1);
     });
 
     it("updates latest item quantity when barcode is empty or not provided", async () => {
