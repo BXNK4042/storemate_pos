@@ -106,6 +106,20 @@ function initTables(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_waste_records_item_id ON waste_records(item_id);
     CREATE INDEX IF NOT EXISTS idx_waste_records_created_at ON waste_records(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_waste_records_reason ON waste_records(reason);
+
+    CREATE TABLE IF NOT EXISTS scanner_alerts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      item_name TEXT,
+      barcode TEXT,
+      item_amount INTEGER,
+      attempted_qty INTEGER,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_scanner_alerts_status ON scanner_alerts(status, id ASC);
   `);
 
   try {

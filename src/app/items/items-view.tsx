@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -34,6 +34,9 @@ import {
   SlidersHorizontal,
   History,
   Settings2,
+  Search,
+  X,
+  Upload,
 } from "lucide-react";
 import type { Item } from "@/types/item";
 import { StockAdjustDialog } from "@/components/inventory/stock-adjust-dialog";
@@ -66,6 +69,7 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
   const [filterStatus, setFilterStatus] = useState<
     "all" | "attention" | "out_of_stock" | "low_stock"
   >(initialFilter);
+  const [searchQuery, setSearchQuery] = useState("");
   const [defaultThreshold, setDefaultThreshold] = useState<number>(5);
   const [isStockSettingsOpen, setIsStockSettingsOpen] = useState(false);
   const [notification, setNotification] = useState<{
@@ -79,9 +83,11 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
     item_price: "",
     item_amount: "",
     item_barcode: "",
+    item_image: "",
     expiry_date: "",
     low_stock_threshold: "",
   });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,10 +132,14 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
       item_price: "",
       item_amount: "",
       item_barcode: "",
+      item_image: "",
       expiry_date: "",
       low_stock_threshold: "",
     });
     setFormError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setIsDialogOpen(true);
   };
 
@@ -137,6 +147,9 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
     setIsDialogOpen(false);
     setEditingItem(null);
     setFormError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleEditClick = (item: Item) => {
@@ -146,6 +159,7 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
       item_price: String(item.item_price),
       item_amount: String(item.item_amount),
       item_barcode: item.item_barcode,
+      item_image: item.item_image || "",
       expiry_date: item.expiry_date || "",
       low_stock_threshold:
         item.low_stock_threshold !== null && item.low_stock_threshold !== undefined
@@ -153,7 +167,31 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
           : "",
     });
     setFormError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setIsDialogOpen(true);
+  };
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setFormData((prev) => ({ ...prev, item_image: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleClearImage = () => {
+    setFormData((prev) => ({ ...prev, item_image: "" }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleAdjustClick = (item: Item) => {
@@ -254,6 +292,7 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
             item_price: price,
             item_amount: amount,
             item_barcode: formData.item_barcode.trim(),
+            item_image: formData.item_image.trim() ? formData.item_image.trim() : null,
             expiry_date: formData.expiry_date ? formData.expiry_date : null,
             low_stock_threshold: parsedThreshold,
           }),
@@ -283,6 +322,7 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
             item_price: price,
             item_amount: amount,
             item_barcode: formData.item_barcode.trim(),
+            item_image: formData.item_image.trim() ? formData.item_image.trim() : null,
             expiry_date: formData.expiry_date ? formData.expiry_date : null,
             low_stock_threshold: parsedThreshold,
           }),
@@ -328,7 +368,17 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
   }, [items, defaultThreshold]);
 
   const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+
     return items.filter((item) => {
+      if (q) {
+        const matchesName = item.item_name.toLowerCase().includes(q);
+        const matchesBarcode = item.item_barcode?.toLowerCase().includes(q);
+        if (!matchesName && !matchesBarcode) {
+          return false;
+        }
+      }
+
       const effective = getEffectiveThreshold(item.low_stock_threshold, defaultThreshold);
       const alert = evaluateStockStatus(item.item_amount, effective, !!item.low_stock_threshold);
 
@@ -340,7 +390,7 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
       if (filterStatus === "low_stock") return alert.status === "low_stock";
       return true;
     });
-  }, [items, filterStatus, defaultThreshold]);
+  }, [items, filterStatus, defaultThreshold, searchQuery]);
 
   const handleStockSettingSaved = (newThreshold: number) => {
     setDefaultThreshold(newThreshold);
@@ -405,44 +455,67 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
         isFiltered={filterStatus === "attention"}
       />
 
-      {/* Filter Badges / Buttons */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant={filterStatus === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilterStatus("all")}
-          className="h-8 text-xs cursor-pointer"
-        >
-          ทั้งหมด ({items.length})
-        </Button>
-        {outOfStockCount > 0 && (
+      {/* Filter Badges / Buttons and Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
-            variant={filterStatus === "out_of_stock" ? "destructive" : "outline"}
+            variant={filterStatus === "all" ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilterStatus("out_of_stock")}
-            className={`h-8 text-xs cursor-pointer ${
-              filterStatus === "out_of_stock"
-                ? ""
-                : "text-rose-700 border-rose-200 hover:bg-rose-50"
-            }`}
+            onClick={() => setFilterStatus("all")}
+            className="h-8 text-xs cursor-pointer"
           >
-            สินค้าหมด ({outOfStockCount})
+            ทั้งหมด ({items.length})
           </Button>
-        )}
-        {lowStockCount > 0 && (
-          <Button
-            variant={filterStatus === "low_stock" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus("low_stock")}
-            className={`h-8 text-xs cursor-pointer ${
-              filterStatus === "low_stock"
-                ? "bg-amber-600 hover:bg-amber-700 text-white"
-                : "text-amber-800 border-amber-200 hover:bg-amber-50"
-            }`}
-          >
-            สต็อกใกล้หมด ({lowStockCount})
-          </Button>
-        )}
+          {outOfStockCount > 0 && (
+            <Button
+              variant={filterStatus === "out_of_stock" ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => setFilterStatus("out_of_stock")}
+              className={`h-8 text-xs cursor-pointer ${
+                filterStatus === "out_of_stock"
+                  ? ""
+                  : "text-rose-700 border-rose-200 hover:bg-rose-50"
+              }`}
+            >
+              สินค้าหมด ({outOfStockCount})
+            </Button>
+          )}
+          {lowStockCount > 0 && (
+            <Button
+              variant={filterStatus === "low_stock" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterStatus("low_stock")}
+              className={`h-8 text-xs cursor-pointer ${
+                filterStatus === "low_stock"
+                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : "text-amber-800 border-amber-200 hover:bg-amber-50"
+              }`}
+            >
+              สต็อกใกล้หมด ({lowStockCount})
+            </Button>
+          )}
+        </div>
+
+        <div className="relative w-full sm:w-64 md:w-72">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            type="text"
+            placeholder="ค้นหาชื่อสินค้า หรือ รหัสบาร์โค้ด..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 pr-8 h-8 text-xs"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-sm"
+              aria-label="ล้างการค้นหา"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Notification Toast */}
@@ -500,7 +573,9 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
                     colSpan={7}
                     className="py-12 text-center text-muted-foreground"
                   >
-                    {filterStatus !== "all"
+                    {searchQuery
+                      ? `ไม่พบสินค้าที่ตรงกับการค้นหา "${searchQuery}"`
+                      : filterStatus !== "all"
                       ? "ไม่พบสินค้าตามเงื่อนไขที่เลือก"
                       : "ไม่มีข้อมูลสินค้าในคลัง"}
                   </TableCell>
@@ -687,6 +762,66 @@ export default function ItemsView({ initialItems = [] }: { initialItems?: Item[]
                   }
                   required
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="item_image" className="text-xs font-semibold">
+                  รูปภาพสินค้า
+                </Label>
+                <div className="flex items-start gap-3">
+                  <div className="h-16 w-16 rounded-md border border-gray-200 bg-muted/30 overflow-hidden flex items-center justify-center shrink-0">
+                    {formData.item_image ? (
+                      <img
+                        src={formData.item_image}
+                        alt="รูปสินค้าตัวอย่าง"
+                        className="h-full w-full object-contain p-0.5"
+                      />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      id="item_image"
+                      type="text"
+                      placeholder="URL หรือ path รูปภาพ เช่น /uploads/items/item-1.jpg"
+                      value={formData.item_image}
+                      onChange={(e) =>
+                        setFormData({ ...formData, item_image: e.target.value })
+                      }
+                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageFileUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-7 text-xs px-2.5 gap-1 cursor-pointer"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>เลือกรูปจากเครื่อง</span>
+                      </Button>
+                      {formData.item_image && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearImage}
+                          className="h-7 text-xs px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer"
+                        >
+                          ลบรูปภาพ
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-1">

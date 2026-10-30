@@ -143,7 +143,15 @@ describe("Cashier Safety & Sanitization", () => {
 describe("Order Backend Cash Validation", () => {
   beforeEach(() => {
     try {
-      getDb().prepare("UPDATE items SET item_amount = 50 WHERE item_id = 2").run();
+      const db = getDb();
+      const existing = db.prepare("SELECT item_id FROM items WHERE item_id = 2").get();
+      if (!existing) {
+        db.prepare(
+          "INSERT INTO items (item_id, item_name, item_price, item_amount, item_barcode) VALUES (2, 'โค้ก 325 มล.', 15, 50, 'test-coke-item-2')"
+        ).run();
+      } else {
+        db.prepare("UPDATE items SET item_amount = 50 WHERE item_id = 2").run();
+      }
     } catch {
       // ignore
     }

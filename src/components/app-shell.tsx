@@ -3,17 +3,24 @@
 import { usePathname } from "next/navigation";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "@/components/ui/toast";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
 
   if (isLoginPage) {
-    return <main className="flex-1 w-full min-h-screen flex items-center justify-center p-4">{children}</main>;
+    return (
+      <main className="flex-1 w-full min-h-screen flex items-center justify-center p-4">
+        <Toaster position="top-right" />
+        {children}
+      </main>
+    );
   }
 
   return (
     <SidebarProvider>
+      <Toaster position="top-right" />
       <div className="flex min-h-screen w-full m-4 lg:m-7">
         <AppSidebar />
         <main className="flex-1 w-full px-4 lg:px-8">

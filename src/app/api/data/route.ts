@@ -1,4 +1,4 @@
-import { getActiveBarcode, enqueueBarcode, popActiveBarcode, clearActiveBarcode } from "@/lib/barcode";
+import { getActiveBarcode, enqueueBarcode, popActiveBarcode, clearActiveBarcode, pushScannerAlert, popScannerAlert, clearScannerAlerts } from "@/lib/barcode";
 import { getDb } from "@/lib/db";
 import { verifySessionToken } from "@/lib/token";
 import { commitStockIntake } from "@/lib/stock";
@@ -180,6 +180,17 @@ export async function POST(req: Request) {
         const itemAmount = Number(item.item_amount ?? 0);
 
         if (existingCartQuantity + 1 > itemAmount) {
+          pushScannerAlert(
+            {
+              type: "insufficient_stock",
+              message: `สินค้า "${item.item_name}" มีสต็อกเพียง ${itemAmount} ชิ้น (ในตะกร้ามีแล้ว ${existingCartQuantity} ชิ้น)`,
+              item_name: item.item_name,
+              barcode: item.item_barcode,
+              item_amount: itemAmount,
+              attempted_qty: existingCartQuantity + 1,
+            },
+            db
+          );
           const sessionCart = getSessionCart(mode);
           return Response.json(
             {
@@ -255,10 +266,21 @@ export async function POST(req: Request) {
       if (targetRow) {
         if (mode === "sale" && qty > 0) {
           const itemRow = db
-            .prepare("SELECT item_amount FROM items WHERE item_id = ?")
-            .get(targetRow.item_id) as { item_amount: number } | undefined;
+            .prepare("SELECT item_name, item_barcode, item_amount FROM items WHERE item_id = ?")
+            .get(targetRow.item_id) as { item_name: string; item_barcode: string; item_amount: number } | undefined;
           const itemAmount = Number(itemRow?.item_amount ?? 0);
           if (targetRow.quantity + qty > itemAmount) {
+            pushScannerAlert(
+              {
+                type: "insufficient_stock",
+                message: `สินค้า "${itemRow?.item_name || "สินค้า"}" มีสต็อกเพียง ${itemAmount} ชิ้น (ในตะกร้ามีแล้ว ${targetRow.quantity} ชิ้น)`,
+                item_name: itemRow?.item_name,
+                barcode: itemRow?.item_barcode,
+                item_amount: itemAmount,
+                attempted_qty: targetRow.quantity + qty,
+              },
+              db
+            );
             const sessionCart = getSessionCart(mode);
             return Response.json(
               {
@@ -426,16 +448,19 @@ export async function GET(req: Request) {
     );
   }
 
+  const db = getDb();
   const url = new URL(req.url);
   const peek = url.searchParams.get("peek") === "true";
   const mode = url.searchParams.get("mode") || "sale";
-  const barcode = peek ? getActiveBarcode() : popActiveBarcode();
+  const barcode = peek ? getActiveBarcode(db) : popActiveBarcode(db);
+  const alert = popScannerAlert(db);
 
   const sessionCart = getSessionCart(mode);
 
   return Response.json(
     {
       text: barcode,
+      alert: alert ?? null,
       total: sessionCart.total,
       total_items: sessionCart.total_items,
       total_quantity: sessionCart.total_quantity,
@@ -516,15 +541,16 @@ export async function DELETE(req: Request) {
     const url = new URL(req.url);
     const clearCart = url.searchParams.get("clear_cart") === "true";
     const mode = url.searchParams.get("mode");
-    if (clearCart) {
-      if (mode) {
-        db.prepare("DELETE FROM active_cart WHERE mode = ?").run(mode);
-      } else {
-        db.prepare("DELETE FROM active_cart").run();
+      if (clearCart) {
+        if (mode) {
+          db.prepare("DELETE FROM active_cart WHERE mode = ?").run(mode);
+        } else {
+          db.prepare("DELETE FROM active_cart").run();
+        }
       }
-    }
-    clearActiveBarcode();
-    return Response.json({ success: true, text: "" }, { headers: NO_CACHE_HEADERS });
+      clearActiveBarcode();
+      clearScannerAlerts(db);
+      return Response.json({ success: true, text: "" }, { headers: NO_CACHE_HEADERS });
   } catch (err) {
     return Response.json(
       { success: false, error: err instanceof Error ? err.message : "Internal error" },

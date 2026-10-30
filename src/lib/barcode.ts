@@ -190,6 +190,127 @@ export function setActiveBarcode(barcode: string, db?: Database.Database): void 
   tx();
 }
 
+export interface ScannerAlert {
+  id: number;
+  type: string;
+  message: string;
+  item_name?: string | null;
+  barcode?: string | null;
+  item_amount?: number | null;
+  attempted_qty?: number | null;
+  status: string;
+  created_at: string;
+}
+
+export interface PushScannerAlertInput {
+  type: string;
+  message: string;
+  item_name?: string | null;
+  barcode?: string | null;
+  item_amount?: number | null;
+  attempted_qty?: number | null;
+}
+
+function ensureScannerAlertsTable(dbInstance: Database.Database): void {
+  try {
+    dbInstance.exec(`
+      CREATE TABLE IF NOT EXISTS scanner_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        item_name TEXT,
+        barcode TEXT,
+        item_amount INTEGER,
+        attempted_qty INTEGER,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_scanner_alerts_status ON scanner_alerts(status, id ASC);
+    `);
+  } catch {}
+}
+
+export function pushScannerAlert(
+  alert: PushScannerAlertInput,
+  db?: Database.Database
+): number {
+  const dbInstance = db ?? getDb();
+  ensureScannerAlertsTable(dbInstance);
+
+  try {
+    const stmt = dbInstance.prepare(`
+      INSERT INTO scanner_alerts (type, message, item_name, barcode, item_amount, attempted_qty, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
+    `);
+    const info = stmt.run(
+      alert.type,
+      alert.message,
+      alert.item_name ?? null,
+      alert.barcode ?? null,
+      alert.item_amount !== undefined ? alert.item_amount : null,
+      alert.attempted_qty !== undefined ? alert.attempted_qty : null
+    );
+    return Number(info.lastInsertRowid);
+  } catch (err) {
+    console.error("Failed to push scanner alert:", err);
+    return 0;
+  }
+}
+
+export function popScannerAlert(db?: Database.Database): ScannerAlert | null {
+  try {
+    const dbInstance = db ?? getDb();
+    ensureScannerAlertsTable(dbInstance);
+
+    const tx = dbInstance.transaction(() => {
+      const row = dbInstance
+        .prepare(`
+          SELECT id, type, message, item_name, barcode, item_amount, attempted_qty, status, created_at
+          FROM scanner_alerts
+          WHERE status = 'pending'
+          ORDER BY id ASC
+          LIMIT 1
+        `)
+        .get() as ScannerAlert | undefined;
+
+      if (!row) {
+        return null;
+      }
+
+      dbInstance
+        .prepare("UPDATE scanner_alerts SET status = 'consumed' WHERE id = ?")
+        .run(row.id);
+
+      return {
+        id: Number(row.id),
+        type: String(row.type),
+        message: String(row.message),
+        item_name: row.item_name != null ? String(row.item_name) : null,
+        barcode: row.barcode != null ? String(row.barcode) : null,
+        item_amount: row.item_amount != null ? Number(row.item_amount) : null,
+        attempted_qty: row.attempted_qty != null ? Number(row.attempted_qty) : null,
+        status: String(row.status),
+        created_at: String(row.created_at),
+      };
+    });
+
+    return tx();
+  } catch (err) {
+    console.error("Failed to pop scanner alert:", err);
+    return null;
+  }
+}
+
+export function clearScannerAlerts(db?: Database.Database): void {
+  try {
+    const dbInstance = db ?? getDb();
+    ensureScannerAlertsTable(dbInstance);
+    dbInstance.prepare("UPDATE scanner_alerts SET status = 'consumed' WHERE status = 'pending'").run();
+  } catch (err) {
+    console.error("Failed to clear scanner alerts:", err);
+  }
+}
+
 export function clearActiveBarcode(db?: Database.Database): void {
   try {
     const dbInstance = db ?? getDb();

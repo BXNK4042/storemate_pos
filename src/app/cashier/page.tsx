@@ -32,6 +32,7 @@ import { ReceiptModal, type ReceiptOrder } from '@/components/receipt-modal';
 import { PaymentDialog } from '@/components/payment-dialog';
 import { getExpiryStatus, formatExpiryDate } from '@/lib/expiry';
 import { getEffectiveThreshold } from '@/lib/stock-alerts-eval';
+import { toast } from '@/components/ui/toast';
 
 interface CartItem {
   item: Item;
@@ -222,6 +223,11 @@ export default function CashierPage() {
   // Cart operations with stock validation and expiry check
   const addToCart = useCallback((item: Item, force = false) => {
     if (item.item_amount <= 0) {
+      toast.add({
+        type: 'error',
+        title: 'สต็อกสินค้าไม่พอ',
+        description: `สินค้า "${item.item_name}" สินค้าหมด`,
+      });
       setNotification({
         type: 'error',
         message: `สินค้า "${item.item_name}" สินค้าหมด`,
@@ -243,6 +249,11 @@ export default function CashierPage() {
       const nextQty = currentCartQty + 1;
 
       if (nextQty > item.item_amount) {
+        toast.add({
+          type: 'error',
+          title: 'สต็อกสินค้าไม่พอ',
+          description: `สินค้า "${item.item_name}" มีสต็อกเพียง ${item.item_amount} ชิ้น`,
+        });
         setNotification({
           type: 'error',
           message: `สินค้า "${item.item_name}" มีสต็อกเพียง ${item.item_amount} ชิ้น`,
@@ -295,6 +306,11 @@ export default function CashierPage() {
         .filter((ci): ci is CartItem => ci !== null);
 
       if (overstockItem) {
+        toast.add({
+          type: 'error',
+          title: 'สต็อกสินค้าไม่พอ',
+          description: `สินค้า "${overstockItem}" มีสต็อกเพียง ${overstockLimit} ชิ้น`,
+        });
         setNotification({
           type: 'error',
           message: `สินค้า "${overstockItem}" มีสต็อกเพียง ${overstockLimit} ชิ้น`,
@@ -390,6 +406,16 @@ export default function CashierPage() {
       const res = await fetch('/api/data?mode=sale', { cache: 'no-store' });
       if (!res.ok) return;
       const json = await res.json();
+
+      // Check for scanner stock alerts pushed by backend
+      if (json.alert && (json.alert.type === 'insufficient_stock' || !json.alert.type)) {
+        toast.add({
+          type: 'error',
+          title: 'สต็อกสินค้าไม่พอ',
+          description: json.alert.message,
+        });
+      }
+
       const scannedCode = (json.text || '').trim();
 
       // 1. Process scanned barcode notifications if any barcode arrived
@@ -399,18 +425,32 @@ export default function CashierPage() {
         );
 
         if (matched) {
-          const expiry = getExpiryStatus(matched.expiry_date);
-          if (expiry.status === 'expired') {
-            setExpiredItemToConfirm(matched);
+          const cartItem = cartRef.current.find((ci) => ci.item.item_id === matched.item_id);
+          const currentQty = cartItem ? cartItem.quantity : 0;
+          if (currentQty >= matched.item_amount) {
+            toast.add({
+              type: 'error',
+              title: 'สต็อกสินค้าไม่พอ',
+              description: `สินค้า "${matched.item_name}" มีสต็อกเพียง ${matched.item_amount} ชิ้น`,
+            });
             setNotification({
               type: 'error',
-              message: `คำเตือน: สแกนพบสินค้าหมดอายุ "${matched.item_name}" (${formatExpiryDate(matched.expiry_date)})`,
+              message: `สินค้า "${matched.item_name}" มีสต็อกเพียง ${matched.item_amount} ชิ้น`,
             });
           } else {
-            setNotification({
-              type: 'success',
-              message: `สแกนบาร์โค้ดสำเร็จ: เพิ่ม "${matched.item_name}" แล้ว`,
-            });
+            const expiry = getExpiryStatus(matched.expiry_date);
+            if (expiry.status === 'expired') {
+              setExpiredItemToConfirm(matched);
+              setNotification({
+                type: 'error',
+                message: `คำเตือน: สแกนพบสินค้าหมดอายุ "${matched.item_name}" (${formatExpiryDate(matched.expiry_date)})`,
+              });
+            } else {
+              setNotification({
+                type: 'success',
+                message: `สแกนบาร์โค้ดสำเร็จ: เพิ่ม "${matched.item_name}" แล้ว`,
+              });
+            }
           }
         } else {
           setNotification({
@@ -750,6 +790,41 @@ export default function CashierPage() {
               placeholder="ค้นหาชื่อสินค้า หรือ รหัสบาร์โค้ด..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const query = searchQuery.trim();
+                  if (!query) return;
+                  const matched =
+                    items.find((it) => it.item_barcode.toLowerCase() === query.toLowerCase()) ||
+                    (filteredItems.length === 1
+                      ? filteredItems[0]
+                      : items.find((it) => it.item_name.toLowerCase() === query.toLowerCase()));
+
+                  if (matched) {
+                    const cartItem = cart.find((ci) => ci.item.item_id === matched.item_id);
+                    const currentQty = cartItem ? cartItem.quantity : 0;
+                    if (currentQty + 1 > matched.item_amount) {
+                      toast.add({
+                        type: 'error',
+                        title: 'สต็อกสินค้าไม่พอ',
+                        description: `สินค้า "${matched.item_name}" มีสต็อกเพียง ${matched.item_amount} ชิ้น`,
+                      });
+                      setNotification({
+                        type: 'error',
+                        message: `สินค้า "${matched.item_name}" มีสต็อกเพียง ${matched.item_amount} ชิ้น`,
+                      });
+                    } else {
+                      addToCart(matched);
+                      setSearchQuery('');
+                    }
+                  } else {
+                    setNotification({
+                      type: 'error',
+                      message: `ไม่พบสินค้าตรงกับบาร์โค้ด: ${query}`,
+                    });
+                  }
+                }
+              }}
               className="pl-10 pr-4 h-10 text-sm bg-white"
             />
           </div>

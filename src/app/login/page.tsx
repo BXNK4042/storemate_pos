@@ -73,12 +73,12 @@ export default function LoginPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
         <div className="space-y-2">
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             ชื่อผู้ใช้งาน
           </label>
-          <div className="relative">
+          <div className="relative" suppressHydrationWarning>
             <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
@@ -88,6 +88,7 @@ export default function LoginPage() {
               required
               className="pl-10"
               autoFocus
+              suppressHydrationWarning
             />
           </div>
         </div>
@@ -96,7 +97,7 @@ export default function LoginPage() {
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             รหัสผ่าน
           </label>
-          <div className="relative">
+          <div className="relative" suppressHydrationWarning>
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="password"
@@ -105,6 +106,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="pl-10"
+              suppressHydrationWarning
             />
           </div>
         </div>

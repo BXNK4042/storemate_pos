@@ -313,6 +313,13 @@ describe("ESP32 StoreMate POS API (/api/data)", () => {
       // Verify active_cart was not incremented beyond 5
       const cartRow = db.prepare("SELECT quantity FROM active_cart WHERE item_id = 3 AND mode = 'sale'").get() as any;
       assert.equal(cartRow.quantity, 5);
+
+      // Verify GET /api/data?mode=sale pops the insufficient_stock scanner alert
+      const getRes = await GET(createRequest({ method: "GET", url: "http://localhost:3000/api/data?mode=sale" }));
+      const getData = await getRes.json();
+      assert.ok(getData.alert);
+      assert.equal(getData.alert.type, "insufficient_stock");
+      assert.equal(getData.alert.barcode, "8850000003");
     });
 
     it("allows scanning beyond item_amount in stock mode", async () => {
